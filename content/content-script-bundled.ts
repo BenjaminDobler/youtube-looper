@@ -583,11 +583,12 @@ class YouTubeLooperApp {
     if (!this.countdownOverlay) return;
     
     if (seconds > 0) {
-      this.countdownOverlay.innerHTML = `
-        <div style="font-size: 20px; margin-bottom: 10px; color: #aaa;">Loop will restart in</div>
-        <div style="font-size: 72px; color: #4CAF50;">${seconds}</div>
-      `;
-      this.countdownOverlay.style.display = 'block';
+      // Use textContent to avoid Trusted Types violation
+      this.countdownOverlay.textContent = `${seconds}`;
+      this.countdownOverlay.style.display = 'flex';
+      this.countdownOverlay.style.flexDirection = 'column';
+      this.countdownOverlay.style.alignItems = 'center';
+      this.countdownOverlay.style.justifyContent = 'center';
     } else {
       this.countdownOverlay.style.display = 'none';
     }
