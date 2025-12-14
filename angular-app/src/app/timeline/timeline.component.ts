@@ -15,7 +15,7 @@ export class TimelineComponent {
   @Input() set loops(value: Loop[]) { this._loops.set(value); }
   get loops() { return this._loops(); }
   
-  @Input() set currentTime(value: number) { console.log('set current time angular ', value); this._currentTime.set(value); }
+  @Input() set currentTime(value: number) { this._currentTime.set(value); }
   get currentTime() { return this._currentTime(); }
   @Input() set duration(value: number) { this._duration.set(value); }
   get duration() { return this._duration(); }
@@ -65,10 +65,6 @@ export class TimelineComponent {
   });
 
   constructor() {
-    effect(() => {
-        const currentTime = this._currentTime();
-        console.log('Current Time updated in angular:', currentTime);
-        });
   }
 
 
@@ -77,7 +73,6 @@ export class TimelineComponent {
     if (this.isDraggingProgress() || this.justFinishedDragging) {
       return; // Ignore clicks while dragging or just after dragging
     }
-    console.log('Timeline clicked! Duration:', this.duration, 'CurrentTime:', this.currentTime);
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const x = event.clientX - rect.left;
     const percent = x / rect.width;

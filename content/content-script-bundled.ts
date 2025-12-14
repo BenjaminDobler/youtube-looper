@@ -6,7 +6,6 @@
 (function() {
   'use strict';
 
-  console.log('YouTube Looper: Content script loaded');
 
 // ============================================================================
 // Types and Constants
@@ -69,8 +68,6 @@ class YouTubePlayerService {
       return;
     }
 
-    console.log('YouTube video element initialized:', this.video);
-    console.log('Video currentTime:', this.video.currentTime, 'duration:', this.video.duration);
     this.setupEventListeners();
   }
 
@@ -80,7 +77,6 @@ class YouTubePlayerService {
       return;
     }
 
-    console.log('Setting up timeupdate event listener on video element');
     // Listen to native timeupdate event instead of polling
     this.video.addEventListener('timeupdate', () => {
       const currentTime = this.getCurrentTime();
@@ -91,7 +87,6 @@ class YouTubePlayerService {
   }
 
   public reinitialize() {
-    console.log('Reinitializing YouTube player service');
     this.initPlayer();
   }
 
@@ -153,7 +148,6 @@ class StorageService {
     try {
       const key = `loops_${videoId}`;
       localStorage.setItem(key, JSON.stringify(loops));
-      console.log(`Saved ${loops.length} loops for video ${videoId}`);
     } catch (error) {
       console.error('Error saving loops to localStorage:', error);
     }
@@ -163,7 +157,6 @@ class StorageService {
     try {
       const key = `loops_${videoId}`;
       localStorage.removeItem(key);
-      console.log(`Deleted loops for video ${videoId}`);
     } catch (error) {
       console.error('Error deleting loops from localStorage:', error);
     }
@@ -240,20 +233,17 @@ class LoopManagerService {
     if (loop) {
       this.activeLoop = loop;
       this.playerService.seekTo(loop.startTime);
-      console.log('Loop activated:', loop.name);
     }
   }
 
   public deactivateLoop(): void {
     this.activeLoop = null;
-    console.log('Loop deactivated');
   }
 
   public checkLoop(currentTime: number): void {
     if (!this.activeLoop) return;
 
     if (currentTime >= this.activeLoop.endTime) {
-      console.log('Loop end reached, seeking back to start');
       this.playerService.seekTo(this.activeLoop.startTime);
     }
 
@@ -307,14 +297,10 @@ class YouTubeLooperApp {
   private currentVideoId: string | null = null;
 
   constructor() {
-    console.log('YouTubeLooperApp constructor called');
     try {
       this.playerService = new YouTubePlayerService();
-      console.log('PlayerService created');
       this.storageService = new StorageService();
-      console.log('StorageService created');
       this.loopManager = new LoopManagerService(this.playerService, this.storageService);
-      console.log('LoopManager created');
       
       this.init();
     } catch (error) {
@@ -323,7 +309,6 @@ class YouTubeLooperApp {
   }
 
   private async init() {
-    console.log('Initializing YouTube Looper...');
     
     await this.waitForYouTubeReady();
     await this.loadAngularComponents();
@@ -331,14 +316,12 @@ class YouTubeLooperApp {
     this.setupEventListeners();
     await this.handleVideoChange();
     
-    console.log('YouTube Looper: Initialized successfully');
   }
 
   private async waitForCustomElements(): Promise<void> {
     return new Promise((resolve) => {
       const checkCustomElements = () => {
         if (typeof customElements !== 'undefined' && customElements !== null) {
-          console.log('CustomElements registry is now available');
           resolve();
         } else {
           setTimeout(checkCustomElements, 50);
@@ -355,7 +338,6 @@ class YouTubeLooperApp {
         const ytdApp = document.querySelector('ytd-app');
         
         if (player && ytdApp) {
-          console.log('YouTube player ready');
           // Reinitialize the player service now that the player exists
           this.playerService.reinitialize();
           resolve();
@@ -374,18 +356,14 @@ class YouTubeLooperApp {
     return new Promise((resolve) => {
       // Angular components are already loaded by preload-angular.js
       // Just poll to check if custom elements are registered
-      console.log('Waiting for Angular components from preload script...');
-      console.log('CustomElements available:', typeof customElements !== 'undefined' && customElements !== null);
       
       const checkInterval = setInterval(() => {
         const timelineDefined = customElements.get('youtube-loop-timeline');
         const sidebarDefined = customElements.get('youtube-loop-sidebar');
         
-        console.log('Checking custom elements - timeline:', !!timelineDefined, 'sidebar:', !!sidebarDefined);
         
         if (timelineDefined && sidebarDefined) {
           clearInterval(checkInterval);
-          console.log('Custom elements are registered and ready');
           resolve();
         }
       }, 50);
@@ -393,7 +371,6 @@ class YouTubeLooperApp {
       // Timeout after 10 seconds
       setTimeout(() => {
         clearInterval(checkInterval);
-        console.log('Timeout waiting for custom elements, proceeding anyway');
         if (customElements) {
           console.log('Final check - timeline:', !!customElements.get('youtube-loop-timeline'), 
                       'sidebar:', !!customElements.get('youtube-loop-sidebar'));
@@ -419,7 +396,6 @@ class YouTubeLooperApp {
 
     // Check if already injected
     if (document.getElementById('yt-looper-timeline-container')) {
-      console.log('Timeline already injected');
       return;
     }
 
@@ -432,19 +408,14 @@ class YouTubeLooperApp {
     
     belowPlayer.parentNode?.insertBefore(container, belowPlayer);
     
-    console.log('Timeline injected');
     
     // Wait for upgrade and set initial values (customElements is guaranteed to exist by now)
     if (customElements) {
       customElements.whenDefined('youtube-loop-timeline').then(() => {
-      console.log('Timeline element upgraded');
-      console.log('Timeline element instance:', this.timelineElement);
-      console.log('Has currentTime setter:', 'currentTime' in this.timelineElement!);
       
       // Set initial values
       const currentTime = this.playerService.getCurrentTime();
       const duration = this.playerService.getDuration();
-      console.log('Setting initial values - currentTime:', currentTime, 'duration:', duration);
         (this.timelineElement as any).currentTime = currentTime ?? 0;
         (this.timelineElement as any).duration = duration ?? 0;
       }).catch(err => console.error('Failed to wait for timeline upgrade:', err));
@@ -462,7 +433,6 @@ class YouTubeLooperApp {
 
     // Check if already injected
     if (document.getElementById('yt-looper-sidebar-container')) {
-      console.log('Sidebar already injected');
       return;
     }
 
@@ -475,12 +445,10 @@ class YouTubeLooperApp {
     
     secondary.insertBefore(container, secondary.firstChild);
     
-    console.log('Sidebar injected');
     
     // Wait for upgrade
     if (customElements) {
       customElements.whenDefined('youtube-loop-sidebar').then(() => {
-        console.log('Sidebar element upgraded');
       }).catch(err => console.error('Failed to wait for sidebar upgrade:', err));
     }
   }
@@ -529,9 +497,6 @@ class YouTubeLooperApp {
       const duration = this.playerService.getDuration();
       // Only log occasionally to avoid spam
       if (Math.floor(currentTime) % 5 === 0) {
-        console.log('Updating timeline time - currentTime:', currentTime, 'duration:', duration);
-        console.log('Timeline element:', this.timelineElement);
-        console.log('Setting currentTime property on element');
       }
       // Set properties directly - @Input setters will update internal signals
       (this.timelineElement as any).currentTime = currentTime;
@@ -557,18 +522,14 @@ class YouTubeLooperApp {
 
   private async handleVideoChange() {
     try {
-      console.log('handleVideoChange called');
       this.currentVideoId = this.getVideoId();
       
       if (!this.currentVideoId) {
-        console.log('handleVideoChange: No video ID found, skipping');
         return;
       }
       
-      console.log('Video changed to:', this.currentVideoId);
       
       const loops = await this.storageService.getLoops(this.currentVideoId);
-      console.log('Loaded loops from storage:', loops);
       this.loopManager.setLoops(loops);
       
       this.syncComponentsWithLoops();
@@ -598,24 +559,20 @@ class YouTubeLooperApp {
       // Listen to Angular @Output events (they use the property name as event name)
       this.timelineElement.addEventListener('loopCreated', (e: Event) => {
         const detail = (e as CustomEvent).detail;
-        console.log('Loop created event received:', detail);
         this.handleLoopCreated(detail);
       });
 
       this.timelineElement.addEventListener('loopActivated', (e: Event) => {
         const detail = (e as CustomEvent).detail;
-        console.log('Loop activated event received:', detail);
         this.handleLoopActivated(detail.loopId);
       });
 
       this.timelineElement.addEventListener('loopDeactivated', (e: Event) => {
-        console.log('Loop deactivated event received');
         this.handleLoopDeactivated();
       });
 
       this.timelineElement.addEventListener('seekTo', (e: Event) => {
         const detail = (e as CustomEvent).detail;
-        console.log('Seek event received:', detail);
         this.handleSeek(detail.time);
       });
     }
@@ -623,50 +580,41 @@ class YouTubeLooperApp {
     if (this.sidebarElement) {
       this.sidebarElement.addEventListener('loopActivated', (e: Event) => {
         const detail = (e as CustomEvent).detail;
-        console.log('Loop activated event from sidebar:', detail);
         this.handleLoopActivated(detail.loopId);
       });
 
       this.sidebarElement.addEventListener('loopDeactivated', (e: Event) => {
-        console.log('Loop deactivated event from sidebar');
         this.handleLoopDeactivated();
       });
 
       this.sidebarElement.addEventListener('loopDeleted', (e: Event) => {
         const detail = (e as CustomEvent).detail;
-        console.log('Loop deleted event received:', detail);
         this.handleLoopDeleted(detail.loopId);
       });
 
       this.sidebarElement.addEventListener('loopUpdated', (e: Event) => {
         const detail = (e as CustomEvent).detail;
-        console.log('Loop updated event received:', detail);
         this.handleLoopUpdated(detail.loop);
       });
     }
   }
 
   private async handleLoopCreated(detail: any) {
-    console.log('handleLoopCreated called with:', detail);
-    console.log('Current video ID:', this.currentVideoId);
     
     if (!this.currentVideoId) {
       console.error('Cannot create loop: no video ID');
       return;
     }
 
-    console.log('Creating loop...');
     const loop = this.loopManager.createLoop(
       detail.startTime,
       detail.endTime,
       detail.name || `Loop ${this.loopManager.getLoops().length + 1}`
     );
     
-    console.log('Loop created:', loop);
     console.log('Total loops now:', this.loopManager.getLoops().length);
 
     await this.storageService.saveLoops(this.currentVideoId, this.loopManager.getLoops());
-    console.log('Loops saved to storage');
     
     this.syncComponentsWithLoops();
 
@@ -727,7 +675,6 @@ class YouTubeLooperApp {
   }
 
   private handleSeek(time: number) {
-    console.log('Seeking to:', time);
     this.playerService.seekTo(time);
   }
 
@@ -735,14 +682,10 @@ class YouTubeLooperApp {
     const loops = this.loopManager.getLoops();
     const activeLoopId = this.loopManager.getActiveLoopId();
 
-    console.log('Syncing components with loops:', loops.length, 'loops', loops);
-    console.log('Active loop ID:', activeLoopId);
 
     if (this.timelineElement) {
       const currentTime = this.playerService.getCurrentTime();
       const duration = this.playerService.getDuration();
-      console.log('Setting timeline properties - currentTime:', currentTime, 'duration:', duration);
-      console.log('Setting loops on timeline:', loops);
       
       (this.timelineElement as any).loops = loops;
       (this.timelineElement as any).activeLoopId = activeLoopId;
@@ -753,7 +696,6 @@ class YouTubeLooperApp {
     }
 
     if (this.sidebarElement) {
-      console.log('Setting loops on sidebar:', loops);
       (this.sidebarElement as any).loops = loops;
       (this.sidebarElement as any).activeLoopId = activeLoopId;
     }
