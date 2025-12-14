@@ -1,0 +1,81 @@
+<div class="sidebar-container">
+  <div class="sidebar-header">
+    <h3>Loops</h3>
+    <span class="loop-count">{{ loops.length }}</span>
+  </div>
+
+  @if (loops.length > 0) {
+    <div class="loops-list">
+      @for (loop of loops; track loop.id) {
+        <div 
+          class="loop-card"
+          [class.active]="isActive(loop.id)"
+          (click)="onToggleLoop(loop)"
+        >
+      <div class="loop-color-bar" [style.background]="loop.color"></div>
+      
+      <div class="loop-content">
+        @if (!isEditing(loop.id)) {
+          <!-- Loop name -->
+          <div class="loop-name">
+            {{ loop.name }}
+          </div>
+        } @else {
+          <!-- Edit mode -->
+          <div class="loop-edit" (click)="$event.stopPropagation()">
+            <input 
+              type="text" 
+              [(ngModel)]="editingName"
+              (keydown.enter)="onSaveEdit(loop)"
+              (keydown.escape)="onCancelEdit()"
+              class="edit-input"
+              autofocus
+            />
+            <button class="btn-save" (click)="onSaveEdit(loop)">✓</button>
+            <button class="btn-cancel" (click)="onCancelEdit()">✕</button>
+          </div>
+        }
+
+        <!-- Loop info -->
+        <div class="loop-info">
+          <span class="time-range">{{ getLoopTimeRange(loop) }}</span>
+          <span class="duration">{{ getLoopDuration(loop) }}</span>
+        </div>
+
+        <!-- Loop actions -->
+        <div class="loop-actions" (click)="$event.stopPropagation()">
+          <button 
+            class="btn-action btn-edit" 
+            (click)="onEditLoop(loop, $event)"
+            title="Edit loop name"
+          >
+            ✏️
+          </button>
+          <button 
+            class="btn-action btn-delete" 
+            (click)="onDeleteLoop(loop, $event)"
+            title="Delete loop"
+          >
+            🗑️
+          </button>
+        </div>
+      </div>
+
+      @if (isActive(loop.id)) {
+        <!-- Active indicator -->
+        <div class="active-indicator">
+          <span class="pulse"></span>
+          Playing
+        </div>
+      }
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="empty-state">
+      <div class="empty-icon">🔁</div>
+      <p>No loops yet</p>
+      <p class="empty-hint">Click on the timeline below the video to create your first loop</p>
+    </div>
+  }
+</div>

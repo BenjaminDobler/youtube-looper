@@ -1,0 +1,152 @@
+:host {
+  display: block;
+  font-family: "Roboto", "Arial", sans-serif;
+}
+
+.timeline-container {
+  background: #0f0f0f;
+  border-radius: 12px;
+  padding: 16px;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+
+  h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 500;
+    color: #aaa;
+  }
+
+  .time-display {
+    font-size: 12px;
+    color: #aaa;
+    font-family: monospace;
+  }
+}
+
+.timeline-track {
+  position: relative;
+  height: 60px;
+  background: #272727;
+  border-radius: 8px;
+  cursor: crosshair;
+  overflow: visible;
+  margin-bottom: 24px;
+
+  &:hover {
+    background: #2f2f2f;
+  }
+}
+
+.progress-indicator {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #ff0000;
+  z-index: 10;
+  pointer-events: none;
+  transition: left 0.1s linear;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    width: 10px;
+    height: 10px;
+    background: #ff0000;
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(255, 0, 0, 0.8);
+  }
+}
+
+.loop-segment {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  overflow: hidden;
+
+  &:hover {
+    opacity: 1 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+
+  &.active {
+    animation: pulse 2s infinite;
+  }
+
+  .loop-name {
+    font-size: 11px;
+    font-weight: 500;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0);
+  }
+}
+
+.loop-creation-preview {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  background: rgba(255, 255, 255, 0.3);
+  border: 2px dashed rgba(255, 255, 255, 0.6);
+  border-radius: 4px;
+  pointer-events: none;
+  animation: blink 0.8s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+
+.time-markers {
+  position: absolute;
+  bottom: -20px;
+  left: 0;
+  right: 0;
+  height: 20px;
+
+  .marker {
+    position: absolute;
+    font-size: 10px;
+    color: #666;
+    transform: translateX(-50%);
+  }
+}
+
+.timeline-help {
+  text-align: center;
+  font-size: 12px;
+  color: #888;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  margin-top: 8px;
+}

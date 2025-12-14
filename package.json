@@ -1,0 +1,17 @@
+{
+  "name": "youtube-looper",
+  "version": "1.0.0",
+  "description": "Chrome extension to create and manage video loops on YouTube",
+  "scripts": {
+    "build": "npm run build:angular && npm run build:extension && npm run build:package",
+    "build:angular": "cd angular-app && npm run build -- --configuration development",
+    "build:extension": "tsc -p tsconfig.extension.json",
+    "build:package": "./build.sh",
+    "watch": "npm run build:extension -- --watch",
+    "dev": "npm run build"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.268",
+    "typescript": "^5.4.5"
+  }
+}

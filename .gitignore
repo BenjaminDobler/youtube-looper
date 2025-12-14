@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+angular-app/node_modules/
+
+# Build outputs
+dist/
+build/
+angular-app/dist/
+angular-app/.angular/
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary
+.tmp/
+temp/
