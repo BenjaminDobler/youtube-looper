@@ -245,15 +245,22 @@ class LoopManagerService {
   }
 
   public checkLoop(currentTime: number): void {
-    if (!this.activeLoop || this.isPaused) return;
+    if (!this.activeLoop) return;
+    
+    // Skip check if we're in pause countdown
+    if (this.isPaused) return;
 
     if (currentTime >= this.activeLoop.endTime) {
-      // Check if loop has a pause duration
-      if (this.activeLoop.pauseDuration && this.activeLoop.pauseDuration > 0) {
+      // Check if loop has a pause duration set
+      const hasPause = this.activeLoop.pauseDuration && this.activeLoop.pauseDuration > 0;
+      
+      if (hasPause) {
         this.startPauseCountdown();
       } else {
+        // Normal loop behavior - seek back immediately
         this.playerService.seekTo(this.activeLoop.startTime);
       }
+      return;
     }
 
     if (currentTime < this.activeLoop.startTime - 0.5) {
