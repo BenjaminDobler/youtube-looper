@@ -33,6 +33,7 @@ export class TimelineComponent {
   @Output() loopCreated = new EventEmitter<{ startTime: number; endTime: number; name: string }>();
   @Output() loopActivated = new EventEmitter<{ loopId: string }>();
   @Output() loopDeactivated = new EventEmitter<void>();
+  @Output() seekTo = new EventEmitter<{ time: number }>();
 
   // Internal state
   
@@ -40,10 +41,17 @@ export class TimelineComponent {
   protected isCreatingLoop = signal<boolean>(false);
   protected creationStartTime = signal<number | null>(null);
   protected creationEndTime = signal<number | null>(null);
-  protected isDragging = signal<boolean>(false);
+  protected isDraggingProgress = signal<boolean>(false);
+  protected dragPosition = signal<number | null>(null);
+  private timelineTrackElement: HTMLElement | null = null;
+  private justFinishedDragging = false;
 
   // Computed values
   protected progressPercent = computed(() => {
+    // Use drag position if actively dragging
+    if (this.isDraggingProgress() && this.dragPosition() !== null) {
+      return this.dragPosition()!;
+    }
     const dur = this._duration();
     return dur > 0 ? (this._currentTime() / dur) * 100 : 0;
   });
@@ -66,6 +74,9 @@ export class TimelineComponent {
 
   // Handle timeline click to start loop creation
   onTimelineClick(event: MouseEvent) {
+    if (this.isDraggingProgress() || this.justFinishedDragging) {
+      return; // Ignore clicks while dragging or just after dragging
+    }
     console.log('Timeline clicked! Duration:', this.duration, 'CurrentTime:', this.currentTime);
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const x = event.clientX - rect.left;
@@ -175,5 +186,81 @@ export class TimelineComponent {
   // Get loop time label
   getLoopTimeLabel(loop: Loop): string {
     return `${this.formatTime(loop.startTime)} - ${this.formatTime(loop.endTime)}`;
+  }
+
+  // Start dragging progress indicator
+  onProgressMouseDown(event: MouseEvent) {
+    event.stopPropagation();
+    event.preventDefault();
+    
+    // Store the timeline element reference
+    this.timelineTrackElement = (event.currentTarget as HTMLElement).closest('.timeline-track') as HTMLElement;
+    
+    this.isDraggingProgress.set(true);
+    this.handleProgressDrag(event);
+    
+    // Add document-level listeners for smooth dragging outside the element
+    document.addEventListener('mousemove', this.onDocumentMouseMove);
+    document.addEventListener('mouseup', this.onDocumentMouseUp);
+  }
+
+  // Handle dragging progress indicator
+  onProgressDrag(event: MouseEvent) {
+    if (this.isDraggingProgress()) {
+      event.preventDefault();
+      this.handleProgressDrag(event);
+    }
+  }
+
+  // Stop dragging progress indicator
+  onProgressMouseUp(event: MouseEvent) {
+    if (this.isDraggingProgress()) {
+      event.preventDefault();
+      this.isDraggingProgress.set(false);
+      this.dragPosition.set(null);
+    }
+  }
+
+  // Document-level mousemove handler (bound to this)
+  private onDocumentMouseMove = (event: MouseEvent) => {
+    if (this.isDraggingProgress()) {
+      event.preventDefault();
+      this.handleProgressDrag(event);
+    }
+  };
+
+  // Document-level mouseup handler (bound to this)
+  private onDocumentMouseUp = (event: MouseEvent) => {
+    if (this.isDraggingProgress()) {
+      event.preventDefault();
+      this.isDraggingProgress.set(false);
+      this.dragPosition.set(null);
+      this.timelineTrackElement = null;
+      
+      // Set flag to prevent immediate click after drag
+      this.justFinishedDragging = true;
+      setTimeout(() => {
+        this.justFinishedDragging = false;
+      }, 100);
+      
+      // Remove document-level listeners
+      document.removeEventListener('mousemove', this.onDocumentMouseMove);
+      document.removeEventListener('mouseup', this.onDocumentMouseUp);
+    }
+  };
+
+  // Calculate time from mouse position and emit seek event
+  private handleProgressDrag(event: MouseEvent) {
+    if (!this.timelineTrackElement) return;
+
+    const rect = this.timelineTrackElement.getBoundingClientRect();
+    const x = Math.max(0, Math.min(event.clientX - rect.left, rect.width));
+    const percent = x / rect.width;
+    const time = percent * this.duration;
+    
+    // Update drag position for visual feedback
+    this.dragPosition.set(percent * 100);
+    
+    this.seekTo.emit({ time });
   }
 }

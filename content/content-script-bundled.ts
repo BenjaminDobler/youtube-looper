@@ -139,37 +139,50 @@ class YouTubePlayerService {
 class StorageService {
   
   public async getLoops(videoId: string): Promise<Loop[]> {
-    return new Promise((resolve) => {
-      chrome.storage.local.get([videoId], (result) => {
-        resolve(result[videoId] || []);
-      });
-    });
+    try {
+      const key = `loops_${videoId}`;
+      const stored = localStorage.getItem(key);
+      return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      console.error('Error getting loops from localStorage:', error);
+      return [];
+    }
   }
 
   public async saveLoops(videoId: string, loops: Loop[]): Promise<void> {
-    return new Promise((resolve) => {
-      chrome.storage.local.set({ [videoId]: loops }, () => {
-        console.log(`Saved ${loops.length} loops for video ${videoId}`);
-        resolve();
-      });
-    });
+    try {
+      const key = `loops_${videoId}`;
+      localStorage.setItem(key, JSON.stringify(loops));
+      console.log(`Saved ${loops.length} loops for video ${videoId}`);
+    } catch (error) {
+      console.error('Error saving loops to localStorage:', error);
+    }
   }
 
   public async deleteLoops(videoId: string): Promise<void> {
-    return new Promise((resolve) => {
-      chrome.storage.local.remove([videoId], () => {
-        console.log(`Deleted loops for video ${videoId}`);
-        resolve();
-      });
-    });
+    try {
+      const key = `loops_${videoId}`;
+      localStorage.removeItem(key);
+      console.log(`Deleted loops for video ${videoId}`);
+    } catch (error) {
+      console.error('Error deleting loops from localStorage:', error);
+    }
   }
 
   public async getAllVideoIds(): Promise<string[]> {
-    return new Promise((resolve) => {
-      chrome.storage.local.get(null, (items) => {
-        resolve(Object.keys(items));
-      });
-    });
+    try {
+      const videoIds: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('loops_')) {
+          videoIds.push(key.replace('loops_', ''));
+        }
+      }
+      return videoIds;
+    } catch (error) {
+      console.error('Error getting video IDs from localStorage:', error);
+      return [];
+    }
   }
 }
 
@@ -284,9 +297,9 @@ class LoopManagerService {
 // ============================================================================
 
 class YouTubeLooperApp {
-  private playerService: YouTubePlayerService;
-  private loopManager: LoopManagerService;
-  private storageService: StorageService;
+  private playerService!: YouTubePlayerService;
+  private loopManager!: LoopManagerService;
+  private storageService!: StorageService;
   
   private timelineElement: HTMLElement | null = null;
   private sidebarElement: HTMLElement | null = null;
@@ -294,11 +307,19 @@ class YouTubeLooperApp {
   private currentVideoId: string | null = null;
 
   constructor() {
-    this.playerService = new YouTubePlayerService();
-    this.storageService = new StorageService();
-    this.loopManager = new LoopManagerService(this.playerService, this.storageService);
-    
-    this.init();
+    console.log('YouTubeLooperApp constructor called');
+    try {
+      this.playerService = new YouTubePlayerService();
+      console.log('PlayerService created');
+      this.storageService = new StorageService();
+      console.log('StorageService created');
+      this.loopManager = new LoopManagerService(this.playerService, this.storageService);
+      console.log('LoopManager created');
+      
+      this.init();
+    } catch (error) {
+      console.error('Error in YouTubeLooperApp constructor:', error);
+    }
   }
 
   private async init() {
@@ -535,73 +556,118 @@ class YouTubeLooperApp {
   }
 
   private async handleVideoChange() {
-    this.currentVideoId = this.getVideoId();
-    
-    if (!this.currentVideoId) return;
-    
-    console.log('Video changed to:', this.currentVideoId);
-    
-    const loops = await this.storageService.getLoops(this.currentVideoId);
-    this.loopManager.setLoops(loops);
-    
-    this.syncComponentsWithLoops();
-    
-    chrome.runtime.sendMessage({
-      type: MessageType.VIDEO_CHANGED,
-      payload: { videoId: this.currentVideoId }
-    });
+    try {
+      console.log('handleVideoChange called');
+      this.currentVideoId = this.getVideoId();
+      
+      if (!this.currentVideoId) {
+        console.log('handleVideoChange: No video ID found, skipping');
+        return;
+      }
+      
+      console.log('Video changed to:', this.currentVideoId);
+      
+      const loops = await this.storageService.getLoops(this.currentVideoId);
+      console.log('Loaded loops from storage:', loops);
+      this.loopManager.setLoops(loops);
+      
+      this.syncComponentsWithLoops();
+      
+      // Chrome APIs don't work in MAIN world, skip this
+      if (typeof chrome !== 'undefined' && chrome.runtime) {
+        chrome.runtime.sendMessage({
+          type: MessageType.VIDEO_CHANGED,
+          payload: { videoId: this.currentVideoId }
+        }).catch(err => console.log('Could not send message (expected in MAIN world):', err));
+      }
+    } catch (error) {
+      console.error('Error in handleVideoChange:', error);
+    }
   }
 
   private getVideoId(): string | null {
     const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('v');
+    const videoId = urlParams.get('v');
+    console.log('getVideoId() - URL:', window.location.href);
+    console.log('getVideoId() - Video ID:', videoId);
+    return videoId;
   }
 
   private listenToComponentEvents() {
     if (this.timelineElement) {
-      this.timelineElement.addEventListener(LOOP_EVENTS.CREATED, (e: Event) => {
+      // Listen to Angular @Output events (they use the property name as event name)
+      this.timelineElement.addEventListener('loopCreated', (e: Event) => {
         const detail = (e as CustomEvent).detail;
+        console.log('Loop created event received:', detail);
         this.handleLoopCreated(detail);
       });
 
-      this.timelineElement.addEventListener(LOOP_EVENTS.ACTIVATED, (e: Event) => {
+      this.timelineElement.addEventListener('loopActivated', (e: Event) => {
         const detail = (e as CustomEvent).detail;
+        console.log('Loop activated event received:', detail);
         this.handleLoopActivated(detail.loopId);
+      });
+
+      this.timelineElement.addEventListener('loopDeactivated', (e: Event) => {
+        console.log('Loop deactivated event received');
+        this.handleLoopDeactivated();
+      });
+
+      this.timelineElement.addEventListener('seekTo', (e: Event) => {
+        const detail = (e as CustomEvent).detail;
+        console.log('Seek event received:', detail);
+        this.handleSeek(detail.time);
       });
     }
 
     if (this.sidebarElement) {
-      this.sidebarElement.addEventListener(LOOP_EVENTS.ACTIVATED, (e: Event) => {
+      this.sidebarElement.addEventListener('loopActivated', (e: Event) => {
         const detail = (e as CustomEvent).detail;
+        console.log('Loop activated event from sidebar:', detail);
         this.handleLoopActivated(detail.loopId);
       });
 
-      this.sidebarElement.addEventListener(LOOP_EVENTS.DEACTIVATED, (e: Event) => {
+      this.sidebarElement.addEventListener('loopDeactivated', (e: Event) => {
+        console.log('Loop deactivated event from sidebar');
         this.handleLoopDeactivated();
       });
 
-      this.sidebarElement.addEventListener(LOOP_EVENTS.DELETED, (e: Event) => {
+      this.sidebarElement.addEventListener('loopDeleted', (e: Event) => {
         const detail = (e as CustomEvent).detail;
+        console.log('Loop deleted event received:', detail);
         this.handleLoopDeleted(detail.loopId);
       });
 
-      this.sidebarElement.addEventListener(LOOP_EVENTS.UPDATED, (e: Event) => {
+      this.sidebarElement.addEventListener('loopUpdated', (e: Event) => {
         const detail = (e as CustomEvent).detail;
+        console.log('Loop updated event received:', detail);
         this.handleLoopUpdated(detail.loop);
       });
     }
   }
 
   private async handleLoopCreated(detail: any) {
-    if (!this.currentVideoId) return;
+    console.log('handleLoopCreated called with:', detail);
+    console.log('Current video ID:', this.currentVideoId);
+    
+    if (!this.currentVideoId) {
+      console.error('Cannot create loop: no video ID');
+      return;
+    }
 
+    console.log('Creating loop...');
     const loop = this.loopManager.createLoop(
       detail.startTime,
       detail.endTime,
       detail.name || `Loop ${this.loopManager.getLoops().length + 1}`
     );
+    
+    console.log('Loop created:', loop);
+    console.log('Total loops now:', this.loopManager.getLoops().length);
 
     await this.storageService.saveLoops(this.currentVideoId, this.loopManager.getLoops());
+    console.log('Loops saved to storage');
+    
     this.syncComponentsWithLoops();
 
     chrome.runtime.sendMessage({
@@ -660,28 +726,46 @@ class YouTubeLooperApp {
     });
   }
 
+  private handleSeek(time: number) {
+    console.log('Seeking to:', time);
+    this.playerService.seekTo(time);
+  }
+
   private syncComponentsWithLoops() {
     const loops = this.loopManager.getLoops();
     const activeLoopId = this.loopManager.getActiveLoopId();
+
+    console.log('Syncing components with loops:', loops.length, 'loops', loops);
+    console.log('Active loop ID:', activeLoopId);
 
     if (this.timelineElement) {
       const currentTime = this.playerService.getCurrentTime();
       const duration = this.playerService.getDuration();
       console.log('Setting timeline properties - currentTime:', currentTime, 'duration:', duration);
+      console.log('Setting loops on timeline:', loops);
       
       (this.timelineElement as any).loops = loops;
       (this.timelineElement as any).activeLoopId = activeLoopId;
       (this.timelineElement as any).currentTime = currentTime;
       (this.timelineElement as any).duration = duration;
+      
+      console.log('Timeline loops after setting:', (this.timelineElement as any).loops);
     }
 
     if (this.sidebarElement) {
+      console.log('Setting loops on sidebar:', loops);
       (this.sidebarElement as any).loops = loops;
       (this.sidebarElement as any).activeLoopId = activeLoopId;
     }
   }
 
   private listenToChromeMessages() {
+    // Chrome APIs are not available in MAIN world
+    if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.onMessage) {
+      console.log('Chrome runtime not available (running in MAIN world) - skipping message listener');
+      return;
+    }
+    
     chrome.runtime.onMessage.addListener((message: ChromeMessage) => {
       if (message.type === MessageType.LOOPS_SYNCED) {
         if (message.payload.videoId === this.currentVideoId) {

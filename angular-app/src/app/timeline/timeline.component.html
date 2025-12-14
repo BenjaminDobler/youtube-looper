@@ -13,7 +13,12 @@
     (contextmenu)="onTimelineRightClick($event)"
   >
     <!-- Progress indicator -->
-    <div class="progress-indicator" [style.left.%]="progressPercent()"></div>
+    <div 
+      class="progress-indicator" 
+      [class.dragging]="isDraggingProgress()"
+      [style.left.%]="progressPercent()"
+      (mousedown)="onProgressMouseDown($event)"
+    ></div>
 
     <!-- Existing loops -->
     @for (loop of loops; track loop.id) {

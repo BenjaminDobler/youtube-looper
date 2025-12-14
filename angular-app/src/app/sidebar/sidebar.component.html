@@ -23,16 +23,45 @@
         } @else {
           <!-- Edit mode -->
           <div class="loop-edit" (click)="$event.stopPropagation()">
-            <input 
-              type="text" 
-              [(ngModel)]="editingName"
-              (keydown.enter)="onSaveEdit(loop)"
-              (keydown.escape)="onCancelEdit()"
-              class="edit-input"
-              autofocus
-            />
-            <button class="btn-save" (click)="onSaveEdit(loop)">✓</button>
-            <button class="btn-cancel" (click)="onCancelEdit()">✕</button>
+            <div class="edit-field">
+              <label>Name:</label>
+              <input 
+                type="text" 
+                [(ngModel)]="editingName"
+                (keydown.enter)="onSaveEdit(loop)"
+                (keydown.escape)="onCancelEdit()"
+                class="edit-input"
+                autofocus
+              />
+            </div>
+            <div class="edit-field">
+              <label>Start:</label>
+              <input 
+                type="text" 
+                [value]="formatTime(editingStartTime())"
+                (input)="onStartTimeChange($any($event.target).value)"
+                (keydown.enter)="onSaveEdit(loop)"
+                (keydown.escape)="onCancelEdit()"
+                class="edit-input time-input"
+                placeholder="MM:SS"
+              />
+            </div>
+            <div class="edit-field">
+              <label>End:</label>
+              <input 
+                type="text" 
+                [value]="formatTime(editingEndTime())"
+                (input)="onEndTimeChange($any($event.target).value)"
+                (keydown.enter)="onSaveEdit(loop)"
+                (keydown.escape)="onCancelEdit()"
+                class="edit-input time-input"
+                placeholder="MM:SS"
+              />
+            </div>
+            <div class="edit-buttons">
+              <button class="btn-save" (click)="onSaveEdit(loop)">✓</button>
+              <button class="btn-cancel" (click)="onCancelEdit()">✕</button>
+            </div>
           </div>
         }
 

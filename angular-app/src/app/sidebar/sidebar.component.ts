@@ -31,6 +31,8 @@ export class SidebarComponent {
   // Internal state
   protected editingLoopId = signal<string | null>(null);
   protected editingName = signal<string>('');
+  protected editingStartTime = signal<number>(0);
+  protected editingEndTime = signal<number>(0);
 
   // Toggle loop activation
   onToggleLoop(loop: Loop) {
@@ -46,14 +48,34 @@ export class SidebarComponent {
     event.stopPropagation();
     this.editingLoopId.set(loop.id);
     this.editingName.set(loop.name);
+    this.editingStartTime.set(loop.startTime);
+    this.editingEndTime.set(loop.endTime);
   }
 
-  // Save edited loop name
+  // Save edited loop name and times
   onSaveEdit(loop: Loop) {
     const newName = this.editingName().trim();
-    if (newName && newName !== loop.name) {
+    const newStartTime = this.editingStartTime();
+    const newEndTime = this.editingEndTime();
+    
+    // Validate times
+    if (newStartTime >= newEndTime) {
+      alert('Start time must be before end time');
+      return;
+    }
+    
+    if (newStartTime < 0 || newEndTime < 0) {
+      alert('Times must be positive');
+      return;
+    }
+    
+    const hasChanges = newName !== loop.name || 
+                      newStartTime !== loop.startTime || 
+                      newEndTime !== loop.endTime;
+    
+    if (newName && hasChanges) {
       this.loopUpdated.emit({
-        loop: { ...loop, name: newName }
+        loop: { ...loop, name: newName, startTime: newStartTime, endTime: newEndTime }
       });
     }
     this.editingLoopId.set(null);
@@ -63,6 +85,8 @@ export class SidebarComponent {
   onCancelEdit() {
     this.editingLoopId.set(null);
     this.editingName.set('');
+    this.editingStartTime.set(0);
+    this.editingEndTime.set(0);
   }
 
   // Delete a loop
@@ -100,5 +124,26 @@ export class SidebarComponent {
   // Get loop time range
   getLoopTimeRange(loop: Loop): string {
     return `${this.formatTime(loop.startTime)} - ${this.formatTime(loop.endTime)}`;
+  }
+
+  // Convert time string (MM:SS) to seconds
+  timeStringToSeconds(timeString: string): number {
+    const parts = timeString.split(':');
+    if (parts.length !== 2) return 0;
+    const mins = parseInt(parts[0], 10) || 0;
+    const secs = parseInt(parts[1], 10) || 0;
+    return mins * 60 + secs;
+  }
+
+  // Handle start time input change
+  onStartTimeChange(value: string) {
+    const seconds = this.timeStringToSeconds(value);
+    this.editingStartTime.set(seconds);
+  }
+
+  // Handle end time input change
+  onEndTimeChange(value: string) {
+    const seconds = this.timeStringToSeconds(value);
+    this.editingEndTime.set(seconds);
   }
 }
