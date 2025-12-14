@@ -18,6 +18,7 @@ interface Loop {
   endTime: number;
   color: string;
   createdAt: number;
+  pauseDuration?: number; // Optional pause in seconds between loop repeats
 }
 
 const MessageType = {
@@ -186,6 +187,9 @@ class StorageService {
 class LoopManagerService {
   private loops: Loop[] = [];
   private activeLoop: Loop | null = null;
+  private isPaused: boolean = false;
+  private pauseTimeoutId: number | null = null;
+  private countdownCallback: ((secondsRemaining: number) => void) | null = null;
   
   constructor(
     private playerService: YouTubePlayerService,
@@ -241,15 +245,68 @@ class LoopManagerService {
   }
 
   public checkLoop(currentTime: number): void {
-    if (!this.activeLoop) return;
+    if (!this.activeLoop || this.isPaused) return;
 
     if (currentTime >= this.activeLoop.endTime) {
-      this.playerService.seekTo(this.activeLoop.startTime);
+      // Check if loop has a pause duration
+      if (this.activeLoop.pauseDuration && this.activeLoop.pauseDuration > 0) {
+        this.startPauseCountdown();
+      } else {
+        this.playerService.seekTo(this.activeLoop.startTime);
+      }
     }
 
     if (currentTime < this.activeLoop.startTime - 0.5) {
       this.playerService.seekTo(this.activeLoop.startTime);
     }
+  }
+
+  private startPauseCountdown(): void {
+    if (!this.activeLoop) return;
+    
+    this.isPaused = true;
+    this.playerService.pause();
+    
+    const pauseDuration = this.activeLoop.pauseDuration || 0;
+    let secondsRemaining = pauseDuration;
+    
+    // Emit initial countdown
+    if (this.countdownCallback) {
+      this.countdownCallback(secondsRemaining);
+    }
+    
+    // Create countdown interval
+    const countdownInterval = setInterval(() => {
+      secondsRemaining--;
+      
+      if (this.countdownCallback) {
+        this.countdownCallback(secondsRemaining);
+      }
+      
+      if (secondsRemaining <= 0) {
+        clearInterval(countdownInterval);
+        this.endPauseCountdown();
+      }
+    }, 1000);
+  }
+
+  private endPauseCountdown(): void {
+    if (!this.activeLoop) return;
+    
+    this.isPaused = false;
+    
+    // Hide countdown
+    if (this.countdownCallback) {
+      this.countdownCallback(0);
+    }
+    
+    // Seek back to start and resume
+    this.playerService.seekTo(this.activeLoop.startTime);
+    this.playerService.play();
+  }
+
+  public setCountdownCallback(callback: (secondsRemaining: number) => void): void {
+    this.countdownCallback = callback;
   }
 
   public getLoops(): Loop[] {
@@ -293,6 +350,7 @@ class YouTubeLooperApp {
   
   private timelineElement: HTMLElement | null = null;
   private sidebarElement: HTMLElement | null = null;
+  private countdownOverlay: HTMLElement | null = null;
   
   private currentVideoId: string | null = null;
 
@@ -301,6 +359,11 @@ class YouTubeLooperApp {
       this.playerService = new YouTubePlayerService();
       this.storageService = new StorageService();
       this.loopManager = new LoopManagerService(this.playerService, this.storageService);
+      
+      // Set up countdown callback
+      this.loopManager.setCountdownCallback((seconds) => {
+        this.showCountdown(seconds);
+      });
       
       this.init();
     } catch (error) {
@@ -383,6 +446,7 @@ class YouTubeLooperApp {
   private async injectUI() {
     await this.injectTimeline();
     await this.injectSidebar();
+    this.injectCountdownOverlay();
   }
 
   private async injectTimeline() {
@@ -479,6 +543,47 @@ class YouTubeLooperApp {
         resolve(null);
       }, timeout);
     });
+  }
+
+  private injectCountdownOverlay() {
+    // Create countdown overlay
+    this.countdownOverlay = document.createElement('div');
+    this.countdownOverlay.id = 'youtube-looper-countdown';
+    this.countdownOverlay.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.85);
+      color: white;
+      padding: 30px 50px;
+      border-radius: 12px;
+      font-size: 48px;
+      font-weight: bold;
+      font-family: 'Roboto', Arial, sans-serif;
+      z-index: 10000;
+      display: none;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+    `;
+    
+    document.body.appendChild(this.countdownOverlay);
+  }
+
+  private showCountdown(seconds: number) {
+    if (!this.countdownOverlay) return;
+    
+    if (seconds > 0) {
+      this.countdownOverlay.innerHTML = `
+        <div style="font-size: 20px; margin-bottom: 10px; color: #aaa;">Loop will restart in</div>
+        <div style="font-size: 72px; color: #4CAF50;">${seconds}</div>
+      `;
+      this.countdownOverlay.style.display = 'block';
+    } else {
+      this.countdownOverlay.style.display = 'none';
+    }
   }
 
   private setupEventListeners() {

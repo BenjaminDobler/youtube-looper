@@ -33,6 +33,7 @@ export class SidebarComponent {
   protected editingName = signal<string>('');
   protected editingStartTime = signal<number>(0);
   protected editingEndTime = signal<number>(0);
+  protected editingPauseDuration = signal<number>(0);
 
   // Toggle loop activation
   onToggleLoop(loop: Loop) {
@@ -50,6 +51,7 @@ export class SidebarComponent {
     this.editingName.set(loop.name);
     this.editingStartTime.set(loop.startTime);
     this.editingEndTime.set(loop.endTime);
+    this.editingPauseDuration.set(loop.pauseDuration || 0);
   }
 
   // Save edited loop name and times
@@ -57,6 +59,7 @@ export class SidebarComponent {
     const newName = this.editingName().trim();
     const newStartTime = this.editingStartTime();
     const newEndTime = this.editingEndTime();
+    const newPauseDuration = this.editingPauseDuration();
     
     // Validate times
     if (newStartTime >= newEndTime) {
@@ -69,13 +72,19 @@ export class SidebarComponent {
       return;
     }
     
+    if (newPauseDuration < 0) {
+      alert('Pause duration must be positive');
+      return;
+    }
+    
     const hasChanges = newName !== loop.name || 
                       newStartTime !== loop.startTime || 
-                      newEndTime !== loop.endTime;
+                      newEndTime !== loop.endTime ||
+                      newPauseDuration !== (loop.pauseDuration || 0);
     
     if (newName && hasChanges) {
       this.loopUpdated.emit({
-        loop: { ...loop, name: newName, startTime: newStartTime, endTime: newEndTime }
+        loop: { ...loop, name: newName, startTime: newStartTime, endTime: newEndTime, pauseDuration: newPauseDuration }
       });
     }
     this.editingLoopId.set(null);
@@ -87,6 +96,7 @@ export class SidebarComponent {
     this.editingName.set('');
     this.editingStartTime.set(0);
     this.editingEndTime.set(0);
+    this.editingPauseDuration.set(0);
   }
 
   // Delete a loop

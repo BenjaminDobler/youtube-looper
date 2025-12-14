@@ -58,6 +58,20 @@
                 placeholder="MM:SS"
               />
             </div>
+            <div class="edit-field">
+              <label>Pause:</label>
+              <input 
+                type="number" 
+                [(ngModel)]="editingPauseDuration"
+                (keydown.enter)="onSaveEdit(loop)"
+                (keydown.escape)="onCancelEdit()"
+                class="edit-input time-input"
+                placeholder="0"
+                min="0"
+                step="1"
+              />
+              <span class="field-hint">sec</span>
+            </div>
             <div class="edit-buttons">
               <button class="btn-save" (click)="onSaveEdit(loop)">✓</button>
               <button class="btn-cancel" (click)="onCancelEdit()">✕</button>

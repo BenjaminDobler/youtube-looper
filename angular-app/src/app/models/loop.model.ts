@@ -5,4 +5,5 @@ export interface Loop {
   endTime: number;
   color: string;
   createdAt: number;
+  pauseDuration?: number; // Optional pause in seconds between loop repeats
 }
