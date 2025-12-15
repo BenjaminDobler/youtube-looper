@@ -72,6 +72,21 @@
               />
               <span class="field-hint">sec</span>
             </div>
+            <div class="edit-field">
+              <label>Speed:</label>
+              <input 
+                type="number" 
+                [(ngModel)]="editingPlaybackSpeed"
+                (keydown.enter)="onSaveEdit(loop)"
+                (keydown.escape)="onCancelEdit()"
+                class="edit-input time-input"
+                placeholder="1.0"
+                min="0.25"
+                max="2.0"
+                step="0.25"
+              />
+              <span class="field-hint">×</span>
+            </div>
             <div class="edit-buttons">
               <button class="btn-save" (click)="onSaveEdit(loop)">✓</button>
               <button class="btn-cancel" (click)="onCancelEdit()">✕</button>

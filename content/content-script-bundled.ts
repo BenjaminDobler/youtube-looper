@@ -19,6 +19,7 @@ interface Loop {
   color: string;
   createdAt: number;
   pauseDuration?: number; // Optional pause in seconds between loop repeats
+  playbackSpeed?: number; // Optional playback speed (default 1.0, range 0.25-2.0)
 }
 
 const MessageType = {
@@ -119,6 +120,16 @@ class YouTubePlayerService {
     return !this.video.paused;
   }
 
+  public getPlaybackRate(): number {
+    if (!this.video) return 1.0;
+    return this.video.playbackRate;
+  }
+
+  public setPlaybackRate(rate: number): void {
+    if (!this.video) return;
+    this.video.playbackRate = rate;
+  }
+
   public onTimeUpdate(callback: (time: number) => void): void {
     this.timeUpdateCallbacks.push(callback);
   }
@@ -190,6 +201,7 @@ class LoopManagerService {
   private isPaused: boolean = false;
   private pauseTimeoutId: number | null = null;
   private countdownCallback: ((secondsRemaining: number) => void) | null = null;
+  private originalPlaybackSpeed: number = 1.0;
   
   constructor(
     private playerService: YouTubePlayerService,
@@ -217,6 +229,9 @@ class LoopManagerService {
       
       if (this.activeLoop?.id === updatedLoop.id) {
         this.activeLoop = updatedLoop;
+        // Update playback speed if loop is currently active
+        const playbackSpeed = updatedLoop.playbackSpeed || 1.0;
+        this.playerService.setPlaybackRate(playbackSpeed);
       }
     }
   }
@@ -235,12 +250,23 @@ class LoopManagerService {
   public activateLoop(loopId: string): void {
     const loop = this.loops.find(l => l.id === loopId);
     if (loop) {
+      // Store original playback speed before changing it
+      this.originalPlaybackSpeed = this.playerService.getPlaybackRate();
+      
       this.activeLoop = loop;
       this.playerService.seekTo(loop.startTime);
+      
+      // Set loop-specific playback speed
+      const playbackSpeed = loop.playbackSpeed || 1.0;
+      this.playerService.setPlaybackRate(playbackSpeed);
     }
   }
 
   public deactivateLoop(): void {
+    // Restore original playback speed
+    if (this.activeLoop) {
+      this.playerService.setPlaybackRate(this.originalPlaybackSpeed);
+    }
     this.activeLoop = null;
   }
 

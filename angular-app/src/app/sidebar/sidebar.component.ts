@@ -34,6 +34,7 @@ export class SidebarComponent {
   protected editingStartTime = signal<number>(0);
   protected editingEndTime = signal<number>(0);
   protected editingPauseDuration = signal<number>(0);
+  protected editingPlaybackSpeed = signal<number>(1.0);
 
   // Toggle loop activation
   onToggleLoop(loop: Loop) {
@@ -52,6 +53,7 @@ export class SidebarComponent {
     this.editingStartTime.set(loop.startTime);
     this.editingEndTime.set(loop.endTime);
     this.editingPauseDuration.set(loop.pauseDuration || 0);
+    this.editingPlaybackSpeed.set(loop.playbackSpeed || 1.0);
   }
 
   // Save edited loop name and times
@@ -60,6 +62,7 @@ export class SidebarComponent {
     const newStartTime = this.editingStartTime();
     const newEndTime = this.editingEndTime();
     const newPauseDuration = this.editingPauseDuration();
+    const newPlaybackSpeed = this.editingPlaybackSpeed();
     
     // Validate times
     if (newStartTime >= newEndTime) {
@@ -77,14 +80,20 @@ export class SidebarComponent {
       return;
     }
     
+    if (newPlaybackSpeed < 0.25 || newPlaybackSpeed > 2.0) {
+      alert('Playback speed must be between 0.25 and 2.0');
+      return;
+    }
+    
     const hasChanges = newName !== loop.name || 
                       newStartTime !== loop.startTime || 
                       newEndTime !== loop.endTime ||
-                      newPauseDuration !== (loop.pauseDuration || 0);
+                      newPauseDuration !== (loop.pauseDuration || 0) ||
+                      newPlaybackSpeed !== (loop.playbackSpeed || 1.0);
     
     if (newName && hasChanges) {
       this.loopUpdated.emit({
-        loop: { ...loop, name: newName, startTime: newStartTime, endTime: newEndTime, pauseDuration: newPauseDuration }
+        loop: { ...loop, name: newName, startTime: newStartTime, endTime: newEndTime, pauseDuration: newPauseDuration, playbackSpeed: newPlaybackSpeed }
       });
     }
     this.editingLoopId.set(null);
@@ -97,6 +106,7 @@ export class SidebarComponent {
     this.editingStartTime.set(0);
     this.editingEndTime.set(0);
     this.editingPauseDuration.set(0);
+    this.editingPlaybackSpeed.set(1.0);
   }
 
   // Delete a loop

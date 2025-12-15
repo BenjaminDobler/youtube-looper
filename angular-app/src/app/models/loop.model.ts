@@ -6,4 +6,5 @@ export interface Loop {
   color: string;
   createdAt: number;
   pauseDuration?: number; // Optional pause in seconds between loop repeats
+  playbackSpeed?: number; // Optional playback speed (default 1.0, range 0.25-2.0)
 }
