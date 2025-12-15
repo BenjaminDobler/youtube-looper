@@ -36,27 +36,47 @@
             </div>
             <div class="edit-field">
               <label>Start:</label>
-              <input 
-                type="text" 
-                [value]="formatTime(editingStartTime())"
-                (input)="onStartTimeChange($any($event.target).value)"
-                (keydown.enter)="onSaveEdit(loop)"
-                (keydown.escape)="onCancelEdit()"
-                class="edit-input time-input"
-                placeholder="MM:SS"
-              />
+              <div class="time-input-group">
+                <input 
+                  type="text" 
+                  [value]="formatTime(editingStartTime())"
+                  (input)="onStartTimeChange($any($event.target).value)"
+                  (keydown.enter)="onSaveEdit(loop)"
+                  (keydown.escape)="onCancelEdit()"
+                  class="edit-input time-input"
+                  placeholder="MM:SS"
+                />
+                <button 
+                  class="btn-target" 
+                  (click)="onSetStartToCurrent()"
+                  title="Set to current time"
+                  type="button"
+                >
+                  🎯
+                </button>
+              </div>
             </div>
             <div class="edit-field">
               <label>End:</label>
-              <input 
-                type="text" 
-                [value]="formatTime(editingEndTime())"
-                (input)="onEndTimeChange($any($event.target).value)"
-                (keydown.enter)="onSaveEdit(loop)"
-                (keydown.escape)="onCancelEdit()"
-                class="edit-input time-input"
-                placeholder="MM:SS"
-              />
+              <div class="time-input-group">
+                <input 
+                  type="text" 
+                  [value]="formatTime(editingEndTime())"
+                  (input)="onEndTimeChange($any($event.target).value)"
+                  (keydown.enter)="onSaveEdit(loop)"
+                  (keydown.escape)="onCancelEdit()"
+                  class="edit-input time-input"
+                  placeholder="MM:SS"
+                />
+                <button 
+                  class="btn-target" 
+                  (click)="onSetEndToCurrent()"
+                  title="Set to current time"
+                  type="button"
+                >
+                  🎯
+                </button>
+              </div>
             </div>
             <div class="edit-field">
               <label>Pause:</label>

@@ -735,6 +735,14 @@ class YouTubeLooperApp {
         const detail = (e as CustomEvent).detail;
         this.handleLoopUpdated(detail.loop);
       });
+
+      this.sidebarElement.addEventListener('getCurrentTime', (e: Event) => {
+        const detail = (e as CustomEvent).detail;
+        const currentTime = this.playerService.getCurrentTime();
+        if (currentTime !== null && detail.callback) {
+          detail.callback(currentTime);
+        }
+      });
     }
   }
 

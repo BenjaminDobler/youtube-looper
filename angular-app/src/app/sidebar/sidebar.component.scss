@@ -107,6 +107,13 @@
     }
   }
 
+  .time-input-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+  }
+
   .edit-input {
     flex: 1;
     background: #272727;
@@ -124,6 +131,26 @@
     &.time-input {
       font-family: monospace;
       max-width: 80px;
+    }
+  }
+
+  .btn-target {
+    background: #272727;
+    border: 1px solid #3f3f3f;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      background: #3f3f3f;
+      border-color: #065fd4;
+      transform: scale(1.1);
     }
   }
 

@@ -27,9 +27,11 @@ export class SidebarComponent {
   @Output() loopDeactivated = new EventEmitter<void>();
   @Output() loopDeleted = new EventEmitter<{ loopId: string }>();
   @Output() loopUpdated = new EventEmitter<{ loop: Loop }>();
+  @Output() getCurrentTime = new EventEmitter<{ callback: (time: number) => void }>();
 
   // Internal state
   protected editingLoopId = signal<string | null>(null);
+  protected editingLoop: Loop | null = null;
   protected editingName = signal<string>('');
   protected editingStartTime = signal<number>(0);
   protected editingEndTime = signal<number>(0);
@@ -49,6 +51,7 @@ export class SidebarComponent {
   onEditLoop(loop: Loop, event: MouseEvent) {
     event.stopPropagation();
     this.editingLoopId.set(loop.id);
+    this.editingLoop = loop;
     this.editingName.set(loop.name);
     this.editingStartTime.set(loop.startTime);
     this.editingEndTime.set(loop.endTime);
@@ -102,6 +105,7 @@ export class SidebarComponent {
   // Cancel editing
   onCancelEdit() {
     this.editingLoopId.set(null);
+    this.editingLoop = null;
     this.editingName.set('');
     this.editingStartTime.set(0);
     this.editingEndTime.set(0);
@@ -165,5 +169,53 @@ export class SidebarComponent {
   onEndTimeChange(value: string) {
     const seconds = this.timeStringToSeconds(value);
     this.editingEndTime.set(seconds);
+  }
+
+  // Set start time to current video position
+  onSetStartToCurrent() {
+    this.getCurrentTime.emit({
+      callback: (time: number) => {
+        const newStartTime = Math.floor(time);
+        this.editingStartTime.set(newStartTime);
+        
+        // Emit immediate update to refresh timeline with all current editing values
+        if (this.editingLoop) {
+          this.loopUpdated.emit({
+            loop: { 
+              ...this.editingLoop, 
+              name: this.editingName(),
+              startTime: newStartTime,
+              endTime: this.editingEndTime(),
+              pauseDuration: this.editingPauseDuration(),
+              playbackSpeed: this.editingPlaybackSpeed()
+            }
+          });
+        }
+      }
+    });
+  }
+
+  // Set end time to current video position
+  onSetEndToCurrent() {
+    this.getCurrentTime.emit({
+      callback: (time: number) => {
+        const newEndTime = Math.floor(time);
+        this.editingEndTime.set(newEndTime);
+        
+        // Emit immediate update to refresh timeline with all current editing values
+        if (this.editingLoop) {
+          this.loopUpdated.emit({
+            loop: { 
+              ...this.editingLoop, 
+              name: this.editingName(),
+              startTime: this.editingStartTime(),
+              endTime: newEndTime,
+              pauseDuration: this.editingPauseDuration(),
+              playbackSpeed: this.editingPlaybackSpeed()
+            }
+          });
+        }
+      }
+    });
   }
 }
