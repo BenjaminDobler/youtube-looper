@@ -11,7 +11,6 @@ export class YouTubePlayerService {
     this.video = document.querySelector('video.video-stream.html5-main-video');
     
     if (!this.video) {
-      console.error('YouTube video element not found');
       return;
     }
 

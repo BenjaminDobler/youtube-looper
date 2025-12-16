@@ -1,11 +1,12 @@
 import { Component, ViewEncapsulation, signal, computed, Input, Output, EventEmitter } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Loop } from '../models/loop.model';
+import { IconComponent } from '../shared/icon.component';
 
 @Component({
   selector: 'youtube-loop-sidebar',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, IconComponent],
   templateUrl: './sidebar.component.html',
   styleUrls: ['./sidebar.component.scss'],
   encapsulation: ViewEncapsulation.ShadowDom

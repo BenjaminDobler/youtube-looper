@@ -65,8 +65,6 @@ class YouTubePlayerService {
     this.video = document.querySelector('video.video-stream.html5-main-video');
     
     if (!this.video) {
-      console.error('YouTube video element not found');
-      console.log('Available videos:', document.querySelectorAll('video'));
       return;
     }
 
@@ -75,7 +73,6 @@ class YouTubePlayerService {
 
   private setupEventListeners() {
     if (!this.video) {
-      console.error('Cannot setup event listeners - video is null');
       return;
     }
 
@@ -151,7 +148,6 @@ class StorageService {
       const stored = localStorage.getItem(key);
       return stored ? JSON.parse(stored) : [];
     } catch (error) {
-      console.error('Error getting loops from localStorage:', error);
       return [];
     }
   }
@@ -161,7 +157,7 @@ class StorageService {
       const key = `loops_${videoId}`;
       localStorage.setItem(key, JSON.stringify(loops));
     } catch (error) {
-      console.error('Error saving loops to localStorage:', error);
+      // Silent fail
     }
   }
 
@@ -170,7 +166,7 @@ class StorageService {
       const key = `loops_${videoId}`;
       localStorage.removeItem(key);
     } catch (error) {
-      console.error('Error deleting loops from localStorage:', error);
+      // Silent fail
     }
   }
 
@@ -185,7 +181,6 @@ class StorageService {
       }
       return videoIds;
     } catch (error) {
-      console.error('Error getting video IDs from localStorage:', error);
       return [];
     }
   }
@@ -403,7 +398,7 @@ class YouTubeLooperApp {
       
       this.init();
     } catch (error) {
-      console.error('Error in YouTubeLooperApp constructor:', error);
+      // Silent fail
     }
   }
 
@@ -474,10 +469,6 @@ class YouTubeLooperApp {
       // Timeout after 10 seconds
       setTimeout(() => {
         clearInterval(checkInterval);
-        if (customElements) {
-          console.log('Final check - timeline:', !!customElements.get('youtube-loop-timeline'), 
-                      'sidebar:', !!customElements.get('youtube-loop-sidebar'));
-        }
         resolve();
       }, 10000);
     });
@@ -494,7 +485,6 @@ class YouTubeLooperApp {
     const belowPlayer = await this.waitForElement('#below', 10000);
     
     if (!belowPlayer) {
-      console.warn('Could not find below element after waiting');
       return;
     }
 
@@ -522,7 +512,7 @@ class YouTubeLooperApp {
       const duration = this.playerService.getDuration();
         (this.timelineElement as any).currentTime = currentTime ?? 0;
         (this.timelineElement as any).duration = duration ?? 0;
-      }).catch(err => console.error('Failed to wait for timeline upgrade:', err));
+      }).catch(() => {});
     }
   }
 
@@ -531,7 +521,6 @@ class YouTubeLooperApp {
     const secondary = await this.waitForElement('#secondary', 10000);
     
     if (!secondary) {
-      console.warn('Could not find secondary column after waiting');
       return;
     }
 
@@ -596,7 +585,7 @@ class YouTubeLooperApp {
             }, true);
           });
         }
-      }).catch(err => console.error('Failed to wait for sidebar upgrade:', err));
+      }).catch(() => {});
     }
   }
 
@@ -728,18 +717,16 @@ class YouTubeLooperApp {
         chrome.runtime.sendMessage({
           type: MessageType.VIDEO_CHANGED,
           payload: { videoId: this.currentVideoId }
-        }).catch(err => console.log('Could not send message (expected in MAIN world):', err));
+        }).catch(() => {});
       }
     } catch (error) {
-      console.error('Error in handleVideoChange:', error);
+      // Silent fail
     }
   }
 
   private getVideoId(): string | null {
     const urlParams = new URLSearchParams(window.location.search);
     const videoId = urlParams.get('v');
-    console.log('getVideoId() - URL:', window.location.href);
-    console.log('getVideoId() - Video ID:', videoId);
     return videoId;
   }
 
@@ -799,7 +786,6 @@ class YouTubeLooperApp {
   private async handleLoopCreated(detail: any) {
     
     if (!this.currentVideoId) {
-      console.error('Cannot create loop: no video ID');
       return;
     }
 
@@ -808,28 +794,28 @@ class YouTubeLooperApp {
       detail.endTime,
       detail.name || `Loop ${this.loopManager.getLoops().length + 1}`
     );
-    
-    console.log('Total loops now:', this.loopManager.getLoops().length);
 
     await this.storageService.saveLoops(this.currentVideoId, this.loopManager.getLoops());
     
     this.syncComponentsWithLoops();
 
-    chrome.runtime.sendMessage({
-      type: MessageType.LOOP_CREATED,
-      payload: { videoId: this.currentVideoId, loop }
-    });
+    if (typeof chrome !== 'undefined' && chrome.runtime) {
+      chrome.runtime.sendMessage({
+        type: MessageType.LOOP_CREATED,
+        payload: { videoId: this.currentVideoId, loop }
+      }).catch(() => {});
+    }
   }
 
   private handleLoopActivated(loopId: string) {
     this.loopManager.activateLoop(loopId);
     this.syncComponentsWithLoops();
 
-    if (this.currentVideoId) {
+    if (this.currentVideoId && typeof chrome !== 'undefined' && chrome.runtime) {
       chrome.runtime.sendMessage({
         type: MessageType.LOOP_ACTIVATED,
         payload: { videoId: this.currentVideoId, loopId }
-      });
+      }).catch(() => {});
     }
   }
 
@@ -837,11 +823,11 @@ class YouTubeLooperApp {
     this.loopManager.deactivateLoop();
     this.syncComponentsWithLoops();
 
-    if (this.currentVideoId) {
+    if (this.currentVideoId && typeof chrome !== 'undefined' && chrome.runtime) {
       chrome.runtime.sendMessage({
         type: MessageType.LOOP_DEACTIVATED,
         payload: { videoId: this.currentVideoId }
-      });
+      }).catch(() => {});
     }
   }
 
@@ -852,10 +838,12 @@ class YouTubeLooperApp {
     await this.storageService.saveLoops(this.currentVideoId, this.loopManager.getLoops());
     this.syncComponentsWithLoops();
 
-    chrome.runtime.sendMessage({
-      type: MessageType.LOOP_DELETED,
-      payload: { videoId: this.currentVideoId, loopId }
-    });
+    if (typeof chrome !== 'undefined' && chrome.runtime) {
+      chrome.runtime.sendMessage({
+        type: MessageType.LOOP_DELETED,
+        payload: { videoId: this.currentVideoId, loopId }
+      }).catch(() => {});
+    }
   }
 
   private async handleLoopUpdated(loop: Loop) {
@@ -865,10 +853,12 @@ class YouTubeLooperApp {
     await this.storageService.saveLoops(this.currentVideoId, this.loopManager.getLoops());
     this.syncComponentsWithLoops();
 
-    chrome.runtime.sendMessage({
-      type: MessageType.LOOP_UPDATED,
-      payload: { videoId: this.currentVideoId, loop }
-    });
+    if (typeof chrome !== 'undefined' && chrome.runtime) {
+      chrome.runtime.sendMessage({
+        type: MessageType.LOOP_UPDATED,
+        payload: { videoId: this.currentVideoId, loop }
+      }).catch(() => {});
+    }
   }
 
   private handleSeek(time: number) {
@@ -901,7 +891,6 @@ class YouTubeLooperApp {
   private listenToChromeMessages() {
     // Chrome APIs are not available in MAIN world
     if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.onMessage) {
-      console.log('Chrome runtime not available (running in MAIN world) - skipping message listener');
       return;
     }
     

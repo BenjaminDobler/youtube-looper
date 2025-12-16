@@ -30,9 +30,7 @@ cp -r angular-app/dist/* build/angular-app/dist/
 echo "📝 Creating Angular manifest..."
 node create-angular-manifest.js
 
-# Create icons
-echo "🎨 Creating icons..."
-node create-simple-icons.js
+
 
 # Copy icons
 cp -r icons build/

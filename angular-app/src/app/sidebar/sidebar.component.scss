@@ -138,19 +138,20 @@
     background: #272727;
     border: 1px solid #3f3f3f;
     border-radius: 4px;
-    padding: 4px 8px;
+    padding: 6px;
     cursor: pointer;
-    font-size: 14px;
     line-height: 1;
     transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
+    color: #aaa;
 
     &:hover {
       background: #3f3f3f;
       border-color: #065fd4;
       transform: scale(1.1);
+      color: #fff;
     }
   }
 
@@ -164,10 +165,12 @@
     background: #272727;
     border: none;
     border-radius: 4px;
-    padding: 6px 10px;
+    padding: 8px 12px;
     cursor: pointer;
-    font-size: 12px;
     transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     &:hover {
       background: #3f3f3f;
@@ -219,14 +222,18 @@
   background: #272727;
   border: none;
   border-radius: 6px;
-  padding: 6px 12px;
+  padding: 6px 10px;
   cursor: pointer;
-  font-size: 13px;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #aaa;
 
   &:hover {
     background: #3f3f3f;
     transform: scale(1.05);
+    color: #fff;
   }
 
   &.btn-edit:hover {
@@ -276,9 +283,11 @@
   color: #666;
 
   .empty-icon {
-    font-size: 48px;
     margin-bottom: 16px;
     opacity: 0.5;
+    color: #666;
+    display: flex;
+    justify-content: center;
   }
 
   p {
