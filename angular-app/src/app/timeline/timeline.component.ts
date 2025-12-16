@@ -33,6 +33,7 @@ export class TimelineComponent {
   @Output() loopCreated = new EventEmitter<{ startTime: number; endTime: number; name: string }>();
   @Output() loopActivated = new EventEmitter<{ loopId: string }>();
   @Output() loopDeactivated = new EventEmitter<void>();
+  @Output() loopUpdated = new EventEmitter<{ loop: Loop }>();
   @Output() seekTo = new EventEmitter<{ time: number }>();
 
   // Internal state
@@ -45,6 +46,15 @@ export class TimelineComponent {
   protected dragPosition = signal<number | null>(null);
   private timelineTrackElement: HTMLElement | null = null;
   private justFinishedDragging = false;
+  
+  // Loop dragging state
+  private isDraggingLoop = false;
+  private draggedLoop: Loop | null = null;
+  private dragMode: 'move' | 'resize-start' | 'resize-end' | null = null;
+  private dragStartX = 0;
+  private dragStartTime = 0;
+  private originalLoopStart = 0;
+  private originalLoopEnd = 0;
 
   // Computed values
   protected progressPercent = computed(() => {
@@ -121,14 +131,52 @@ export class TimelineComponent {
     this.creationEndTime.set(null);
   }
 
-  // Click on existing loop to activate/deactivate
+  // Handle mousedown on loop for dragging/resizing
+  onLoopMouseDown(loop: Loop, event: MouseEvent) {
+    event.stopPropagation();
+    event.preventDefault();
+    
+    const loopElement = event.currentTarget as HTMLElement;
+    const rect = loopElement.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const edgeThreshold = 10; // 10px from edge
+    
+    // Determine drag mode based on click position
+    if (x <= edgeThreshold) {
+      this.dragMode = 'resize-start';
+    } else if (x >= rect.width - edgeThreshold) {
+      this.dragMode = 'resize-end';
+    } else {
+      this.dragMode = 'move';
+    }
+    
+    // Store the timeline element reference
+    this.timelineTrackElement = loopElement.closest('.timeline-track') as HTMLElement;
+    
+    // Store drag state
+    this.isDraggingLoop = true;
+    this.draggedLoop = loop;
+    this.dragStartX = event.clientX;
+    this.dragStartTime = this.getTimeFromPosition(event.clientX);
+    this.originalLoopStart = loop.startTime;
+    this.originalLoopEnd = loop.endTime;
+    
+    // Add document-level listeners
+    document.addEventListener('mousemove', this.onLoopDocumentMouseMove);
+    document.addEventListener('mouseup', this.onLoopDocumentMouseUp);
+  }
+  
+  // Click on existing loop to activate/deactivate (when not dragging)
   onLoopClick(loop: Loop, event: MouseEvent) {
     event.stopPropagation();
     
-    if (this.activeLoopId === loop.id) {
-      this.loopDeactivated.emit();
-    } else {
-      this.loopActivated.emit({ loopId: loop.id });
+    // Only handle click if we didn't just finish dragging
+    if (!this.justFinishedDragging) {
+      if (this.activeLoopId === loop.id) {
+        this.loopDeactivated.emit();
+      } else {
+        this.loopActivated.emit({ loopId: loop.id });
+      }
     }
   }
 
@@ -257,5 +305,107 @@ export class TimelineComponent {
     this.dragPosition.set(percent * 100);
     
     this.seekTo.emit({ time });
+  }
+  
+  // Document-level mousemove handler for loop dragging
+  private onLoopDocumentMouseMove = (event: MouseEvent) => {
+    if (!this.isDraggingLoop || !this.draggedLoop || !this.timelineTrackElement) return;
+    
+    event.preventDefault();
+    const currentTime = this.getTimeFromPosition(event.clientX);
+    const timeDelta = currentTime - this.dragStartTime;
+    
+    let newStartTime = this.originalLoopStart;
+    let newEndTime = this.originalLoopEnd;
+    
+    if (this.dragMode === 'move') {
+      // Move entire loop
+      newStartTime = Math.max(0, this.originalLoopStart + timeDelta);
+      newEndTime = Math.min(this.duration, this.originalLoopEnd + timeDelta);
+      
+      // Keep loop duration constant
+      const loopDuration = this.originalLoopEnd - this.originalLoopStart;
+      if (newStartTime === 0) {
+        newEndTime = loopDuration;
+      } else if (newEndTime === this.duration) {
+        newStartTime = this.duration - loopDuration;
+      }
+    } else if (this.dragMode === 'resize-start') {
+      // Resize start time
+      newStartTime = Math.max(0, Math.min(this.originalLoopStart + timeDelta, this.originalLoopEnd - 0.5));
+    } else if (this.dragMode === 'resize-end') {
+      // Resize end time
+      newEndTime = Math.min(this.duration, Math.max(this.originalLoopEnd + timeDelta, this.originalLoopStart + 0.5));
+    }
+    
+    // Update loop immediately for visual feedback
+    const updatedLoop = {
+      ...this.draggedLoop,
+      startTime: newStartTime,
+      endTime: newEndTime
+    };
+    
+    // Update the loop in the array for visual feedback
+    const index = this._loops().findIndex(l => l.id === this.draggedLoop!.id);
+    if (index !== -1) {
+      const newLoops = [...this._loops()];
+      newLoops[index] = updatedLoop;
+      this._loops.set(newLoops);
+    }
+  };
+  
+  // Document-level mouseup handler for loop dragging
+  private onLoopDocumentMouseUp = (event: MouseEvent) => {
+    if (!this.isDraggingLoop || !this.draggedLoop) return;
+    
+    event.preventDefault();
+    
+    // Emit the updated loop
+    const updatedLoop = this._loops().find(l => l.id === this.draggedLoop!.id);
+    if (updatedLoop) {
+      this.loopUpdated.emit({ loop: updatedLoop });
+    }
+    
+    // Reset drag state
+    this.isDraggingLoop = false;
+    this.draggedLoop = null;
+    this.dragMode = null;
+    this.timelineTrackElement = null;
+    
+    // Set flag to prevent immediate click after drag
+    this.justFinishedDragging = true;
+    setTimeout(() => {
+      this.justFinishedDragging = false;
+    }, 100);
+    
+    // Remove document-level listeners
+    document.removeEventListener('mousemove', this.onLoopDocumentMouseMove);
+    document.removeEventListener('mouseup', this.onLoopDocumentMouseUp);
+  };
+  
+  // Get time from mouse X position
+  private getTimeFromPosition(clientX: number): number {
+    if (!this.timelineTrackElement) return 0;
+    
+    const rect = this.timelineTrackElement.getBoundingClientRect();
+    const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
+    const percent = x / rect.width;
+    return percent * this.duration;
+  }
+  
+  // Get cursor style for loop element
+  getLoopCursorClass(event: MouseEvent): string {
+    const loopElement = event.currentTarget as HTMLElement;
+    const rect = loopElement.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const edgeThreshold = 10;
+    
+    if (x <= edgeThreshold) {
+      return 'ew-resize';
+    } else if (x >= rect.width - edgeThreshold) {
+      return 'ew-resize';
+    } else {
+      return 'move';
+    }
   }
 }

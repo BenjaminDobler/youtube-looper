@@ -26,6 +26,7 @@
         class="loop-segment"
         [class.active]="activeLoopId === loop.id"
         [ngStyle]="getLoopStyle(loop)"
+        (mousedown)="onLoopMouseDown(loop, $event)"
         (click)="onLoopClick(loop, $event)"
         [title]="loop.name + ' (' + getLoopTimeLabel(loop) + ')'"
       >

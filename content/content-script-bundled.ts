@@ -747,6 +747,11 @@ class YouTubeLooperApp {
         this.handleLoopDeactivated();
       });
 
+      this.timelineElement.addEventListener('loopUpdated', (e: Event) => {
+        const detail = (e as CustomEvent).detail;
+        this.handleLoopUpdated(detail.loop);
+      });
+
       this.timelineElement.addEventListener('seekTo', (e: Event) => {
         const detail = (e as CustomEvent).detail;
         this.handleSeek(detail.time);

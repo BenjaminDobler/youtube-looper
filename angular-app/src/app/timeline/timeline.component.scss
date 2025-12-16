@@ -100,13 +100,14 @@
   top: 8px;
   bottom: 8px;
   border-radius: 4px;
-  cursor: pointer;
+  cursor: move;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   padding: 0 8px;
   overflow: hidden;
   box-sizing: border-box;
+  user-select: none;
 
   &:hover {
     opacity: 1 !important;
@@ -126,6 +127,26 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    pointer-events: none;
+  }
+  
+  // Show resize cursor on edges
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 10px;
+    cursor: ew-resize;
+  }
+  
+  &::before {
+    left: 0;
+  }
+  
+  &::after {
+    right: 0;
   }
 }
 
