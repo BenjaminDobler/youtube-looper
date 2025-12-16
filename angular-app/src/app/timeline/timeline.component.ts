@@ -48,7 +48,7 @@ export class TimelineComponent {
   private justFinishedDragging = false;
   
   // Loop dragging state
-  private isDraggingLoop = false;
+  protected isDraggingLoop = signal<boolean>(false);
   private draggedLoop: Loop | null = null;
   private dragMode: 'move' | 'resize-start' | 'resize-end' | null = null;
   private dragStartX = 0;
@@ -154,7 +154,7 @@ export class TimelineComponent {
     this.timelineTrackElement = loopElement.closest('.timeline-track') as HTMLElement;
     
     // Store drag state
-    this.isDraggingLoop = true;
+    this.isDraggingLoop.set(true);
     this.draggedLoop = loop;
     this.dragStartX = event.clientX;
     this.dragStartTime = this.getTimeFromPosition(event.clientX);
@@ -309,7 +309,7 @@ export class TimelineComponent {
   
   // Document-level mousemove handler for loop dragging
   private onLoopDocumentMouseMove = (event: MouseEvent) => {
-    if (!this.isDraggingLoop || !this.draggedLoop || !this.timelineTrackElement) return;
+    if (!this.isDraggingLoop() || !this.draggedLoop || !this.timelineTrackElement) return;
     
     event.preventDefault();
     const currentTime = this.getTimeFromPosition(event.clientX);
@@ -356,7 +356,7 @@ export class TimelineComponent {
   
   // Document-level mouseup handler for loop dragging
   private onLoopDocumentMouseUp = (event: MouseEvent) => {
-    if (!this.isDraggingLoop || !this.draggedLoop) return;
+    if (!this.isDraggingLoop() || !this.draggedLoop) return;
     
     event.preventDefault();
     
@@ -367,7 +367,7 @@ export class TimelineComponent {
     }
     
     // Reset drag state
-    this.isDraggingLoop = false;
+    this.isDraggingLoop.set(false);
     this.draggedLoop = null;
     this.dragMode = null;
     this.timelineTrackElement = null;

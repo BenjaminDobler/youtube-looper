@@ -25,6 +25,7 @@
       <div 
         class="loop-segment"
         [class.active]="activeLoopId === loop.id"
+        [class.dragging]="isDraggingLoop()"
         [ngStyle]="getLoopStyle(loop)"
         (mousedown)="onLoopMouseDown(loop, $event)"
         (click)="onLoopClick(loop, $event)"

@@ -109,6 +109,11 @@
   box-sizing: border-box;
   user-select: none;
 
+  &.dragging {
+    transition: none !important;
+    opacity: 0.9 !important;
+  }
+
   &:hover {
     opacity: 1 !important;
     transform: translateY(-2px);
