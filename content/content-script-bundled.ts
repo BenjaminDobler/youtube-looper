@@ -710,6 +710,9 @@ class YouTubeLooperApp {
       const loops = await this.storageService.getLoops(this.currentVideoId);
       this.loopManager.setLoops(loops);
       
+      // Check for shared loops in URL
+      this.checkForSharedLoops();
+      
       this.syncComponentsWithLoops();
       
       // Chrome APIs don't work in MAIN world, skip this
@@ -722,6 +725,167 @@ class YouTubeLooperApp {
     } catch (error) {
       // Silent fail
     }
+  }
+
+  private checkForSharedLoops() {
+    const hash = window.location.hash;
+    console.log('Checking for shared loops, hash:', hash);
+    
+    if (!hash || !hash.includes('loops=')) {
+      console.log('No loops in hash');
+      return;
+    }
+
+    const match = hash.match(/loops=([A-Za-z0-9_-]+)/);
+    if (!match) {
+      console.log('No match found');
+      return;
+    }
+
+    console.log('Found loops data:', match[1]);
+
+    try {
+      // Decode base64 URL-safe format
+      const base64 = match[1]
+        .replace(/-/g, '+')
+        .replace(/_/g, '/');
+      
+      // Add padding if needed
+      const padding = '='.repeat((4 - base64.length % 4) % 4);
+      const jsonStr = atob(base64 + padding);
+      const loopsData = JSON.parse(jsonStr);
+
+      console.log('Decoded loops:', loopsData);
+
+      // Convert to full Loop objects
+      const importedLoops: Loop[] = loopsData.map((data: any) => ({
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        name: data.n,
+        startTime: data.s,
+        endTime: data.e,
+        color: data.c,
+        createdAt: Date.now(),
+        ...(data.p && { pauseDuration: data.p }),
+        ...(data.r && { playbackSpeed: data.r })
+      }));
+
+      console.log('Imported loops:', importedLoops);
+
+      if (importedLoops.length > 0) {
+        this.showImportPrompt(importedLoops);
+      }
+    } catch (error) {
+      console.error('Error decoding shared loops:', error);
+    }
+  }
+
+  private showImportPrompt(importedLoops: Loop[]) {
+    // Create import prompt overlay
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #0f0f0f;
+      border: 2px solid #065fd4;
+      border-radius: 12px;
+      padding: 16px;
+      color: #fff;
+      font-family: 'Roboto', 'Arial', sans-serif;
+      z-index: 10000;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+      max-width: 300px;
+    `;
+
+    // Create content container
+    const contentDiv = document.createElement('div');
+    contentDiv.style.cssText = 'margin-bottom: 12px;';
+
+    // Create title
+    const titleDiv = document.createElement('div');
+    titleDiv.style.cssText = 'font-size: 14px; font-weight: 500; margin-bottom: 4px;';
+    titleDiv.textContent = 'Import Shared Loops?';
+    contentDiv.appendChild(titleDiv);
+
+    // Create description
+    const descDiv = document.createElement('div');
+    descDiv.style.cssText = 'font-size: 12px; color: #aaa;';
+    descDiv.textContent = `${importedLoops.length} loop${importedLoops.length > 1 ? 's' : ''} found in URL`;
+    contentDiv.appendChild(descDiv);
+
+    overlay.appendChild(contentDiv);
+
+    // Create buttons container
+    const buttonsDiv = document.createElement('div');
+    buttonsDiv.style.cssText = 'display: flex; gap: 8px;';
+
+    // Create accept button
+    const acceptBtn = document.createElement('button');
+    acceptBtn.id = 'import-accept';
+    acceptBtn.style.cssText = `
+      flex: 1;
+      background: #065fd4;
+      border: none;
+      border-radius: 6px;
+      padding: 8px;
+      color: white;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+    `;
+    acceptBtn.textContent = 'Import';
+    buttonsDiv.appendChild(acceptBtn);
+
+    // Create reject button
+    const rejectBtn = document.createElement('button');
+    rejectBtn.id = 'import-reject';
+    rejectBtn.style.cssText = `
+      flex: 1;
+      background: #272727;
+      border: none;
+      border-radius: 6px;
+      padding: 8px;
+      color: #aaa;
+      font-size: 12px;
+      cursor: pointer;
+    `;
+    rejectBtn.textContent = 'Cancel';
+    buttonsDiv.appendChild(rejectBtn);
+
+    overlay.appendChild(buttonsDiv);
+    document.body.appendChild(overlay);
+
+    // Handle accept
+    overlay.querySelector('#import-accept')?.addEventListener('click', async () => {
+      if (!this.currentVideoId) return;
+
+      // Add imported loops to existing ones
+      const existingLoops = this.loopManager.getLoops();
+      const allLoops = [...existingLoops, ...importedLoops];
+      
+      this.loopManager.setLoops(allLoops);
+      await this.storageService.saveLoops(this.currentVideoId, allLoops);
+      this.syncComponentsWithLoops();
+
+      // Clear hash
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+
+      overlay.remove();
+    });
+
+    // Handle reject
+    overlay.querySelector('#import-reject')?.addEventListener('click', () => {
+      // Clear hash
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+      overlay.remove();
+    });
+
+    // Auto-dismiss after 15 seconds
+    setTimeout(() => {
+      if (document.body.contains(overlay)) {
+        overlay.remove();
+      }
+    }, 15000);
   }
 
   private getVideoId(): string | null {

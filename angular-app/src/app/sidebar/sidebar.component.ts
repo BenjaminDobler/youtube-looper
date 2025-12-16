@@ -38,6 +38,7 @@ export class SidebarComponent {
   protected editingEndTime = signal<number>(0);
   protected editingPauseDuration = signal<number>(0);
   protected editingPlaybackSpeed = signal<number>(1.0);
+  protected shareSuccess = signal<boolean>(false);
 
   // Prevent YouTube keyboard shortcuts when typing in inputs
   onInputKeydown(event: KeyboardEvent) {
@@ -245,6 +246,38 @@ export class SidebarComponent {
           });
         }
       }
+    });
+  }
+
+  // Share loops via URL
+  onShareLoops() {
+    if (this.loops.length === 0) return;
+
+    // Create compact loop data (only essential fields)
+    const loopsData = this.loops.map(loop => ({
+      n: loop.name,
+      s: loop.startTime,
+      e: loop.endTime,
+      c: loop.color,
+      ...(loop.pauseDuration && { p: loop.pauseDuration }),
+      ...(loop.playbackSpeed && loop.playbackSpeed !== 1.0 && { r: loop.playbackSpeed })
+    }));
+
+    // Encode to base64 URL-safe format
+    const jsonStr = JSON.stringify(loopsData);
+    const base64 = btoa(jsonStr)
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+
+    // Get current URL and add hash
+    const currentUrl = new URL(window.location.href);
+    currentUrl.hash = `loops=${base64}`;
+
+    // Copy to clipboard
+    navigator.clipboard.writeText(currentUrl.toString()).then(() => {
+      this.shareSuccess.set(true);
+      setTimeout(() => this.shareSuccess.set(false), 2000);
     });
   }
 }

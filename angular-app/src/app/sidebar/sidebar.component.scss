@@ -26,6 +26,12 @@
     color: #fff;
   }
 
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
   .loop-count {
     background: #272727;
     color: #aaa;
@@ -33,6 +39,32 @@
     border-radius: 12px;
     font-size: 12px;
     font-weight: 500;
+  }
+
+  .btn-share {
+    background: #272727;
+    border: 1px solid #3f3f3f;
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #aaa;
+    transition: all 0.2s;
+
+    &:hover {
+      background: #3f3f3f;
+      border-color: #065fd4;
+      color: #fff;
+      transform: scale(1.05);
+    }
+
+    &.success {
+      background: #4caf50;
+      border-color: #4caf50;
+      color: white;
+    }
   }
 }
 
