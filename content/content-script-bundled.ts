@@ -588,19 +588,10 @@ class YouTubeLooperApp {
               
               // Check if event is from an input
               if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
-                // Stop the event from leaving the shadow DOM
+                // Stop the event from leaving the shadow DOM to prevent YouTube shortcuts
+                // This prevents YouTube from seeing the key press while allowing normal input behavior
                 keyEvent.stopPropagation();
                 keyEvent.stopImmediatePropagation();
-                
-                // Prevent YouTube shortcuts
-                const key = keyEvent.key?.toLowerCase() || '';
-                if (key === ' ' || key === 'arrowleft' || key === 'arrowright' || 
-                    key === 'arrowup' || key === 'arrowdown' || key === 'k' || 
-                    key === 'j' || key === 'l' || key === 'm' || key === 'f' || 
-                    key === 't' || key === 'c' || key === 'i' || key === 'home' || 
-                    key === 'end' || /^[0-9]$/.test(key)) {
-                  keyEvent.preventDefault();
-                }
               }
             }, true);
           });
