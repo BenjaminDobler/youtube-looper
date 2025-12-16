@@ -46,6 +46,7 @@ export class TimelineComponent {
   protected dragPosition = signal<number | null>(null);
   private timelineTrackElement: HTMLElement | null = null;
   private justFinishedDragging = false;
+  private justClickedLoop = false;
   
   // Loop dragging state
   protected isDraggingLoop = signal<boolean>(false);
@@ -80,8 +81,8 @@ export class TimelineComponent {
 
   // Handle timeline click to start loop creation
   onTimelineClick(event: MouseEvent) {
-    if (this.isDraggingProgress() || this.justFinishedDragging) {
-      return; // Ignore clicks while dragging or just after dragging
+    if (this.isDraggingProgress() || this.justFinishedDragging || this.justClickedLoop) {
+      return; // Ignore clicks while dragging or just after dragging/clicking a loop
     }
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const x = event.clientX - rect.left;
@@ -153,8 +154,7 @@ export class TimelineComponent {
     // Store the timeline element reference
     this.timelineTrackElement = loopElement.closest('.timeline-track') as HTMLElement;
     
-    // Store drag state
-    this.isDraggingLoop.set(true);
+    // Store drag state (but don't set isDragging yet - wait for actual movement)
     this.draggedLoop = loop;
     this.dragStartX = event.clientX;
     this.dragStartTime = this.getTimeFromPosition(event.clientX);
@@ -164,20 +164,6 @@ export class TimelineComponent {
     // Add document-level listeners
     document.addEventListener('mousemove', this.onLoopDocumentMouseMove);
     document.addEventListener('mouseup', this.onLoopDocumentMouseUp);
-  }
-  
-  // Click on existing loop to activate/deactivate (when not dragging)
-  onLoopClick(loop: Loop, event: MouseEvent) {
-    event.stopPropagation();
-    
-    // Only handle click if we didn't just finish dragging
-    if (!this.justFinishedDragging) {
-      if (this.activeLoopId === loop.id) {
-        this.loopDeactivated.emit();
-      } else {
-        this.loopActivated.emit({ loopId: loop.id });
-      }
-    }
   }
 
   // Calculate loop position and width
@@ -309,7 +295,16 @@ export class TimelineComponent {
   
   // Document-level mousemove handler for loop dragging
   private onLoopDocumentMouseMove = (event: MouseEvent) => {
-    if (!this.isDraggingLoop() || !this.draggedLoop || !this.timelineTrackElement) return;
+    if (!this.draggedLoop || !this.timelineTrackElement) return;
+    
+    // Check if mouse has moved enough to be considered a drag (3px threshold)
+    const deltaX = Math.abs(event.clientX - this.dragStartX);
+    if (!this.isDraggingLoop() && deltaX > 3) {
+      this.isDraggingLoop.set(true);
+    }
+    
+    // Only perform drag operations if we've started dragging
+    if (!this.isDraggingLoop()) return;
     
     event.preventDefault();
     const currentTime = this.getTimeFromPosition(event.clientX);
@@ -356,14 +351,25 @@ export class TimelineComponent {
   
   // Document-level mouseup handler for loop dragging
   private onLoopDocumentMouseUp = (event: MouseEvent) => {
-    if (!this.isDraggingLoop() || !this.draggedLoop) return;
+    if (!this.draggedLoop) return;
     
     event.preventDefault();
     
-    // Emit the updated loop
-    const updatedLoop = this._loops().find(l => l.id === this.draggedLoop!.id);
-    if (updatedLoop) {
-      this.loopUpdated.emit({ loop: updatedLoop });
+    const wasDragging = this.isDraggingLoop();
+    
+    if (wasDragging) {
+      // Emit the updated loop
+      const updatedLoop = this._loops().find(l => l.id === this.draggedLoop!.id);
+      if (updatedLoop) {
+        this.loopUpdated.emit({ loop: updatedLoop });
+      }
+    } else {
+      // It was a click, not a drag - activate/deactivate the loop
+      if (this.activeLoopId === this.draggedLoop.id) {
+        this.loopDeactivated.emit();
+      } else {
+        this.loopActivated.emit({ loopId: this.draggedLoop.id });
+      }
     }
     
     // Reset drag state
@@ -372,10 +378,10 @@ export class TimelineComponent {
     this.dragMode = null;
     this.timelineTrackElement = null;
     
-    // Set flag to prevent immediate click after drag
-    this.justFinishedDragging = true;
+    // Set flag to prevent timeline click
+    this.justClickedLoop = true;
     setTimeout(() => {
-      this.justFinishedDragging = false;
+      this.justClickedLoop = false;
     }, 100);
     
     // Remove document-level listeners
