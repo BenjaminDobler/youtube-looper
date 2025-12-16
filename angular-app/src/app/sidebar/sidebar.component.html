@@ -28,6 +28,7 @@
               <input 
                 type="text" 
                 [(ngModel)]="editingName"
+                (keydown)="onInputKeydown($event)"
                 (keydown.enter)="onSaveEdit(loop)"
                 (keydown.escape)="onCancelEdit()"
                 class="edit-input"
@@ -41,10 +42,11 @@
                   type="text" 
                   [value]="formatTime(editingStartTime())"
                   (input)="onStartTimeChange($any($event.target).value)"
+                  (keydown)="onInputKeydown($event)"
                   (keydown.enter)="onSaveEdit(loop)"
                   (keydown.escape)="onCancelEdit()"
                   class="edit-input time-input"
-                  placeholder="MM:SS"
+                  placeholder="MM:SS.mmm"
                 />
                 <button 
                   class="btn-target" 
@@ -63,10 +65,11 @@
                   type="text" 
                   [value]="formatTime(editingEndTime())"
                   (input)="onEndTimeChange($any($event.target).value)"
+                  (keydown)="onInputKeydown($event)"
                   (keydown.enter)="onSaveEdit(loop)"
                   (keydown.escape)="onCancelEdit()"
                   class="edit-input time-input"
-                  placeholder="MM:SS"
+                  placeholder="MM:SS.mmm"
                 />
                 <button 
                   class="btn-target" 
@@ -83,6 +86,7 @@
               <input 
                 type="number" 
                 [(ngModel)]="editingPauseDuration"
+                (keydown)="onInputKeydown($event)"
                 (keydown.enter)="onSaveEdit(loop)"
                 (keydown.escape)="onCancelEdit()"
                 class="edit-input time-input"
@@ -97,6 +101,7 @@
               <input 
                 type="number" 
                 [(ngModel)]="editingPlaybackSpeed"
+                (keydown)="onInputKeydown($event)"
                 (keydown.enter)="onSaveEdit(loop)"
                 (keydown.escape)="onCancelEdit()"
                 class="edit-input time-input"

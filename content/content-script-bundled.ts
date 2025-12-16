@@ -398,10 +398,17 @@ class YouTubeLooperApp {
         this.showCountdown(seconds);
       });
       
+      // Block YouTube keyboard shortcuts when typing in our inputs
+      this.setupKeyboardShortcutPrevention();
+      
       this.init();
     } catch (error) {
       console.error('Error in YouTubeLooperApp constructor:', error);
     }
+  }
+
+  private setupKeyboardShortcutPrevention() {
+    // Keyboard shortcut prevention is now handled at the container level in injectSidebar()
   }
 
   private async init() {
@@ -542,10 +549,62 @@ class YouTubeLooperApp {
     
     secondary.insertBefore(container, secondary.firstChild);
     
+    // Add keyboard event blocking at the container level
+    ['keydown', 'keyup', 'keypress'].forEach(eventType => {
+      container.addEventListener(eventType, (e: Event) => {
+        const keyEvent = e as KeyboardEvent;
+        const target = keyEvent.target as HTMLElement;
+        
+        // Check if event is from an input inside the sidebar
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+          // Stop the event completely
+          keyEvent.stopPropagation();
+          keyEvent.stopImmediatePropagation();
+          
+          // Prevent YouTube shortcuts
+          const key = keyEvent.key?.toLowerCase() || '';
+          if (key === ' ' || key === 'arrowleft' || key === 'arrowright' || 
+              key === 'arrowup' || key === 'arrowdown' || key === 'k' || 
+              key === 'j' || key === 'l' || key === 'm' || key === 'f' || 
+              key === 't' || key === 'c' || key === 'i' || key === 'home' || 
+              key === 'end' || /^[0-9]$/.test(key)) {
+            keyEvent.preventDefault();
+          }
+        }
+      }, true);
+    });
     
-    // Wait for upgrade
+    // Wait for upgrade and attach keyboard blocking to shadow DOM
     if (customElements) {
       customElements.whenDefined('youtube-loop-sidebar').then(() => {
+        // Access the shadow root to add event listeners inside it
+        const shadowRoot = this.sidebarElement?.shadowRoot;
+        if (shadowRoot) {
+          // Add event listeners directly to the shadow root
+          ['keydown', 'keyup', 'keypress'].forEach(eventType => {
+            shadowRoot.addEventListener(eventType, (e: Event) => {
+              const keyEvent = e as KeyboardEvent;
+              const target = keyEvent.target as HTMLElement;
+              
+              // Check if event is from an input
+              if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+                // Stop the event from leaving the shadow DOM
+                keyEvent.stopPropagation();
+                keyEvent.stopImmediatePropagation();
+                
+                // Prevent YouTube shortcuts
+                const key = keyEvent.key?.toLowerCase() || '';
+                if (key === ' ' || key === 'arrowleft' || key === 'arrowright' || 
+                    key === 'arrowup' || key === 'arrowdown' || key === 'k' || 
+                    key === 'j' || key === 'l' || key === 'm' || key === 'f' || 
+                    key === 't' || key === 'c' || key === 'i' || key === 'home' || 
+                    key === 'end' || /^[0-9]$/.test(key)) {
+                  keyEvent.preventDefault();
+                }
+              }
+            }, true);
+          });
+        }
       }).catch(err => console.error('Failed to wait for sidebar upgrade:', err));
     }
   }

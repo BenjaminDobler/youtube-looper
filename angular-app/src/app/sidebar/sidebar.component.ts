@@ -38,6 +38,21 @@ export class SidebarComponent {
   protected editingPauseDuration = signal<number>(0);
   protected editingPlaybackSpeed = signal<number>(1.0);
 
+  // Prevent YouTube keyboard shortcuts when typing in inputs
+  onInputKeydown(event: KeyboardEvent) {
+    // Stop all event propagation to prevent YouTube from handling the key press
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    
+    // Allow Enter and Escape to work for save/cancel
+    if (event.key === 'Enter' || event.key === 'Escape') {
+      return;
+    }
+    
+    // Prevent default for other keys to stop YouTube shortcuts
+    // but allow normal typing behavior
+  }
+
   // Toggle loop activation
   onToggleLoop(loop: Loop) {
     if (this.activeLoopId === loop.id) {
@@ -132,11 +147,12 @@ export class SidebarComponent {
     return this.activeLoopId === loopId;
   }
 
-  // Format time as MM:SS
+  // Format time as MM:SS.mmm
   formatTime(seconds: number): string {
     const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    const wholeSecs = Math.floor(seconds % 60);
+    const ms = Math.round((seconds % 1) * 1000);
+    return `${mins}:${wholeSecs.toString().padStart(2, '0')}.${ms.toString().padStart(3, '0')}`;
   }
 
   // Get loop duration
@@ -150,13 +166,23 @@ export class SidebarComponent {
     return `${this.formatTime(loop.startTime)} - ${this.formatTime(loop.endTime)}`;
   }
 
-  // Convert time string (MM:SS) to seconds
+  // Convert time string (MM:SS.mmm or MM:SS) to seconds
   timeStringToSeconds(timeString: string): number {
     const parts = timeString.split(':');
     if (parts.length !== 2) return 0;
     const mins = parseInt(parts[0], 10) || 0;
-    const secs = parseInt(parts[1], 10) || 0;
-    return mins * 60 + secs;
+    
+    // Check if seconds part has milliseconds
+    const secondsPart = parts[1];
+    if (secondsPart.includes('.')) {
+      const [secs, ms] = secondsPart.split('.');
+      const seconds = parseInt(secs, 10) || 0;
+      const milliseconds = parseInt(ms.padEnd(3, '0').substring(0, 3), 10) || 0;
+      return mins * 60 + seconds + milliseconds / 1000;
+    } else {
+      const secs = parseInt(secondsPart, 10) || 0;
+      return mins * 60 + secs;
+    }
   }
 
   // Handle start time input change
@@ -175,7 +201,8 @@ export class SidebarComponent {
   onSetStartToCurrent() {
     this.getCurrentTime.emit({
       callback: (time: number) => {
-        const newStartTime = Math.floor(time);
+        // Keep millisecond precision
+        const newStartTime = Math.round(time * 1000) / 1000;
         this.editingStartTime.set(newStartTime);
         
         // Emit immediate update to refresh timeline with all current editing values
@@ -199,7 +226,8 @@ export class SidebarComponent {
   onSetEndToCurrent() {
     this.getCurrentTime.emit({
       callback: (time: number) => {
-        const newEndTime = Math.floor(time);
+        // Keep millisecond precision
+        const newEndTime = Math.round(time * 1000) / 1000;
         this.editingEndTime.set(newEndTime);
         
         // Emit immediate update to refresh timeline with all current editing values
