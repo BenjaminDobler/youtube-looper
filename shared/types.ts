@@ -5,6 +5,9 @@ export interface Loop {
   endTime: number;
   color: string;
   createdAt: number;
+  pauseDuration?: number;
+  playbackSpeed?: number;
+  pitchShift?: number;
 }
 
 export enum MessageType {

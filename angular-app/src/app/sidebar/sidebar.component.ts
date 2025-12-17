@@ -18,10 +18,14 @@ export class SidebarComponent {
   
   @Input() set activeLoopId(value: string | null) { this._activeLoopId.set(value); }
   get activeLoopId() { return this._activeLoopId(); }
+  
+  @Input() set pitchShift(value: number) { this._pitchShift.set(value); }
+  get pitchShift() { return this._pitchShift(); }
 
   // Internal signals
   private _loops = signal<Loop[]>([]);
   private _activeLoopId = signal<string | null>(null);
+  private _pitchShift = signal<number>(0);
 
   // Traditional outputs
   @Output() loopActivated = new EventEmitter<{ loopId: string }>();
@@ -29,6 +33,7 @@ export class SidebarComponent {
   @Output() loopDeleted = new EventEmitter<{ loopId: string }>();
   @Output() loopUpdated = new EventEmitter<{ loop: Loop }>();
   @Output() getCurrentTime = new EventEmitter<{ callback: (time: number) => void }>();
+  @Output() pitchChanged = new EventEmitter<{ semitones: number }>();
 
   // Internal state
   protected editingLoopId = signal<string | null>(null);
@@ -279,5 +284,23 @@ export class SidebarComponent {
       this.shareSuccess.set(true);
       setTimeout(() => this.shareSuccess.set(false), 2000);
     });
+  }
+
+  // Pitch control methods
+  onPitchUp() {
+    const newPitch = this._pitchShift() + 1;
+    this._pitchShift.set(newPitch);
+    this.pitchChanged.emit({ semitones: newPitch });
+  }
+
+  onPitchDown() {
+    const newPitch = this._pitchShift() - 1;
+    this._pitchShift.set(newPitch);
+    this.pitchChanged.emit({ semitones: newPitch });
+  }
+
+  onPitchReset() {
+    this._pitchShift.set(0);
+    this.pitchChanged.emit({ semitones: 0 });
   }
 }

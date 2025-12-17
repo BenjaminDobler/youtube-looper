@@ -20,6 +20,7 @@ interface Loop {
   createdAt: number;
   pauseDuration?: number; // Optional pause in seconds between loop repeats
   playbackSpeed?: number; // Optional playback speed (default 1.0, range 0.25-2.0)
+  pitchShift?: number; // Optional pitch shift in semitones (e.g., +2, -3)
 }
 
 const MessageType = {
@@ -55,6 +56,12 @@ interface ChromeMessage {
 class YouTubePlayerService {
   private video: HTMLVideoElement | null = null;
   private timeUpdateCallbacks: Array<(time: number) => void> = [];
+  
+  // Web Audio API for pitch shifting
+  private audioContext: AudioContext | null = null;
+  private sourceNode: MediaElementAudioSourceNode | null = null;
+  private gainNode: GainNode | null = null;
+  private currentPitchShift: number = 0; // in semitones
 
   constructor() {
     this.initPlayer();
@@ -69,6 +76,32 @@ class YouTubePlayerService {
     }
 
     this.setupEventListeners();
+    this.setupWebAudio();
+  }
+  
+  private setupWebAudio() {
+    if (!this.video || this.audioContext) {
+      return; // Already set up
+    }
+    
+    try {
+      // Create audio context
+      this.audioContext = new AudioContext();
+      
+      // Create source from video element
+      this.sourceNode = this.audioContext.createMediaElementSource(this.video);
+      
+      // Create gain node for volume control
+      this.gainNode = this.audioContext.createGain();
+      
+      // Connect: source -> gain -> destination
+      this.sourceNode.connect(this.gainNode);
+      this.gainNode.connect(this.audioContext.destination);
+      
+      console.log('Web Audio API initialized for pitch control');
+    } catch (error) {
+      console.error('Failed to initialize Web Audio API:', error);
+    }
   }
 
   private setupEventListeners() {
@@ -130,9 +163,58 @@ class YouTubePlayerService {
   public onTimeUpdate(callback: (time: number) => void): void {
     this.timeUpdateCallbacks.push(callback);
   }
+  
+  /**
+   * Set pitch shift in semitones (e.g., +2 for two semitones up, -3 for three semitones down)
+   * Uses preservesPitch to change pitch without affecting playback speed
+   */
+  public setPitchShift(semitones: number): void {
+    if (!this.video) return;
+    
+    this.currentPitchShift = semitones;
+    
+    // Calculate playback rate from semitones
+    // Formula: rate = 2^(semitones/12)
+    const rate = Math.pow(2, semitones / 12);
+    
+    // Set playback rate but preserve pitch is OFF by default
+    // We want to change pitch, so we explicitly set preservesPitch to false
+    this.video.playbackRate = rate;
+    (this.video as any).preservesPitch = false;
+    (this.video as any).mozPreservesPitch = false;
+    (this.video as any).webkitPreservesPitch = false;
+    
+    console.log(`Pitch shift set to ${semitones} semitones (rate: ${rate})`);
+  }
+  
+  /**
+   * Get current pitch shift in semitones
+   */
+  public getPitchShift(): number {
+    return this.currentPitchShift;
+  }
+  
+  /**
+   * Reset pitch to normal
+   */
+  public resetPitch(): void {
+    this.setPitchShift(0);
+  }
 
   public destroy(): void {
-    // No interval to clear anymore since we use event listeners
+    // Clean up Web Audio API
+    if (this.sourceNode) {
+      this.sourceNode.disconnect();
+      this.sourceNode = null;
+    }
+    if (this.gainNode) {
+      this.gainNode.disconnect();
+      this.gainNode = null;
+    }
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
+    }
   }
 }
 
@@ -254,6 +336,10 @@ class LoopManagerService {
       // Set loop-specific playback speed
       const playbackSpeed = loop.playbackSpeed || 1.0;
       this.playerService.setPlaybackRate(playbackSpeed);
+      
+      // Set loop-specific pitch shift
+      const pitchShift = loop.pitchShift || 0;
+      this.playerService.setPitchShift(pitchShift);
     }
   }
 
@@ -262,6 +348,8 @@ class LoopManagerService {
     if (this.activeLoop) {
       this.playerService.setPlaybackRate(this.originalPlaybackSpeed);
     }
+    // Reset pitch to normal when deactivating
+    this.playerService.resetPitch();
     this.activeLoop = null;
   }
 
@@ -949,6 +1037,11 @@ class YouTubeLooperApp {
           detail.callback(currentTime);
         }
       });
+
+      this.sidebarElement.addEventListener('pitchChanged', (e: Event) => {
+        const detail = (e as CustomEvent).detail;
+        this.handlePitchChanged(detail.semitones);
+      });
     }
   }
 
@@ -1034,6 +1127,11 @@ class YouTubeLooperApp {
     this.playerService.seekTo(time);
   }
 
+  private handlePitchChanged(semitones: number) {
+    console.log(`Setting pitch shift to ${semitones} semitones`);
+    this.playerService.setPitchShift(semitones);
+  }
+
   private syncComponentsWithLoops() {
     const loops = this.loopManager.getLoops();
     const activeLoopId = this.loopManager.getActiveLoopId();
@@ -1054,6 +1152,10 @@ class YouTubeLooperApp {
     if (this.sidebarElement) {
       (this.sidebarElement as any).loops = loops;
       (this.sidebarElement as any).activeLoopId = activeLoopId;
+      
+      // Update pitch display based on current pitch shift
+      const currentPitch = this.playerService.getPitchShift();
+      (this.sidebarElement as any).pitchShift = currentPitch;
     }
   }
 

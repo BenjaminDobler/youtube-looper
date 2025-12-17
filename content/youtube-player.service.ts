@@ -1,6 +1,12 @@
 export class YouTubePlayerService {
   private video: HTMLVideoElement | null = null;
   private timeUpdateCallbacks: Array<(time: number) => void> = [];
+  
+  // Web Audio API for pitch shifting
+  private audioContext: AudioContext | null = null;
+  private sourceNode: MediaElementAudioSourceNode | null = null;
+  private gainNode: GainNode | null = null;
+  private currentPitchShift: number = 0; // in semitones
 
   constructor() {
     this.initPlayer();
@@ -16,6 +22,32 @@ export class YouTubePlayerService {
 
     console.log('YouTube video element initialized');
     this.setupEventListeners();
+    this.setupWebAudio();
+  }
+  
+  private setupWebAudio() {
+    if (!this.video || this.audioContext) {
+      return; // Already set up
+    }
+    
+    try {
+      // Create audio context
+      this.audioContext = new AudioContext();
+      
+      // Create source from video element
+      this.sourceNode = this.audioContext.createMediaElementSource(this.video);
+      
+      // Create gain node for volume control
+      this.gainNode = this.audioContext.createGain();
+      
+      // Connect: source -> gain -> destination
+      this.sourceNode.connect(this.gainNode);
+      this.gainNode.connect(this.audioContext.destination);
+      
+      console.log('Web Audio API initialized for pitch control');
+    } catch (error) {
+      console.error('Failed to initialize Web Audio API:', error);
+    }
   }
 
   private setupEventListeners() {
@@ -68,8 +100,57 @@ export class YouTubePlayerService {
   public onTimeUpdate(callback: (time: number) => void): void {
     this.timeUpdateCallbacks.push(callback);
   }
+  
+  /**
+   * Set pitch shift in semitones (e.g., +2 for two semitones up, -3 for three semitones down)
+   * Uses preservesPitch to change pitch without affecting playback speed
+   */
+  public setPitchShift(semitones: number): void {
+    if (!this.video) return;
+    
+    this.currentPitchShift = semitones;
+    
+    // Calculate playback rate from semitones
+    // Formula: rate = 2^(semitones/12)
+    const rate = Math.pow(2, semitones / 12);
+    
+    // Set playback rate but preserve pitch is OFF by default
+    // We want to change pitch, so we explicitly set preservesPitch to false
+    this.video.playbackRate = rate;
+    (this.video as any).preservesPitch = false;
+    (this.video as any).mozPreservesPitch = false;
+    (this.video as any).webkitPreservesPitch = false;
+    
+    console.log(`Pitch shift set to ${semitones} semitones (rate: ${rate})`);
+  }
+  
+  /**
+   * Get current pitch shift in semitones
+   */
+  public getPitchShift(): number {
+    return this.currentPitchShift;
+  }
+  
+  /**
+   * Reset pitch to normal
+   */
+  public resetPitch(): void {
+    this.setPitchShift(0);
+  }
 
   public destroy(): void {
-    // No interval to clear anymore - using native events
+    // Clean up Web Audio API
+    if (this.sourceNode) {
+      this.sourceNode.disconnect();
+      this.sourceNode = null;
+    }
+    if (this.gainNode) {
+      this.gainNode.disconnect();
+      this.gainNode = null;
+    }
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
+    }
   }
 }

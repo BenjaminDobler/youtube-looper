@@ -16,6 +16,19 @@
     </div>
   </div>
 
+  <!-- Pitch Control Section -->
+  <div class="pitch-control-section">
+    <div class="pitch-header">
+      <span class="pitch-label">Pitch</span>
+      <span class="pitch-value">{{ pitchShift > 0 ? '+' : '' }}{{ pitchShift }} {{ pitchShift === 1 || pitchShift === -1 ? 'semitone' : 'semitones' }}</span>
+    </div>
+    <div class="pitch-controls">
+      <button class="btn-pitch" (click)="onPitchDown()" title="Lower pitch by 1 semitone">-</button>
+      <button class="btn-pitch-reset" (click)="onPitchReset()" title="Reset pitch to normal">Reset</button>
+      <button class="btn-pitch" (click)="onPitchUp()" title="Raise pitch by 1 semitone">+</button>
+    </div>
+  </div>
+
   @if (loops.length > 0) {
     <div class="loops-list">
       @for (loop of loops; track loop.id) {
