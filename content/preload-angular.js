@@ -4,8 +4,6 @@
 (function() {
   'use strict';
   
-  console.log('YouTube Looper: Preload script starting in MAIN world');
-  
   // Prevent YouTube's ES5 adapter from interfering with our custom elements
   const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
@@ -13,7 +11,6 @@
         if (node.tagName === 'SCRIPT' && 
             node.src && 
             node.src.includes('custom-elements-es5-adapter')) {
-          console.log('Blocking ES5 adapter script');
           node.remove();
         }
       });
@@ -28,7 +25,6 @@
   // Wait for the Angular bundle URL to be passed from isolated world
   window.addEventListener('youtube-looper-load-angular', (event) => {
     const bundleUrl = event.detail.bundleUrl;
-    console.log('YouTube Looper: Loading Angular bundle from:', bundleUrl);
     
     const script = document.createElement('script');
     
@@ -43,11 +39,7 @@
     }
     
     script.crossOrigin = 'anonymous';
-    script.onload = () => console.log('YouTube Looper: Angular bundle loaded');
-    script.onerror = (err) => console.error('YouTube Looper: Failed to load Angular bundle', err);
     
     (document.head || document.documentElement).appendChild(script);
   });
-  
-  console.log('YouTube Looper: Waiting for Angular bundle URL...');
 })();

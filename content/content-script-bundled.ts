@@ -833,8 +833,6 @@ class YouTubeLooperApp {
       const jsonStr = atob(base64 + padding);
       const loopsData = JSON.parse(jsonStr);
 
-      console.log('Decoded loops:', loopsData);
-
       // Convert to full Loop objects
       const importedLoops: Loop[] = loopsData.map((data: any) => ({
         id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
