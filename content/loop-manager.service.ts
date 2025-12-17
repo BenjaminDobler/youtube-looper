@@ -56,13 +56,11 @@ export class LoopManagerService {
       this.activeLoop = loop;
       // Seek to start of loop
       this.playerService.seekTo(loop.startTime);
-      console.log('Loop activated:', loop.name);
     }
   }
 
   public deactivateLoop(): void {
     this.activeLoop = null;
-    console.log('Loop deactivated');
   }
 
   public checkLoop(currentTime: number): void {
@@ -70,7 +68,6 @@ export class LoopManagerService {
 
     // Check if we've reached the end of the loop
     if (currentTime >= this.activeLoop.endTime) {
-      console.log('Loop end reached, seeking back to start');
       this.playerService.seekTo(this.activeLoop.startTime);
     }
 

@@ -97,10 +97,8 @@ class YouTubePlayerService {
       // Connect: source -> gain -> destination
       this.sourceNode.connect(this.gainNode);
       this.gainNode.connect(this.audioContext.destination);
-      
-      console.log('Web Audio API initialized for pitch control');
     } catch (error) {
-      console.error('Failed to initialize Web Audio API:', error);
+      // Silently fail - audio will still work without pitch shifting
     }
   }
 
@@ -183,8 +181,6 @@ class YouTubePlayerService {
     (this.video as any).preservesPitch = false;
     (this.video as any).mozPreservesPitch = false;
     (this.video as any).webkitPreservesPitch = false;
-    
-    console.log(`Pitch shift set to ${semitones} semitones (rate: ${rate})`);
   }
   
   /**
@@ -769,7 +765,6 @@ class YouTubeLooperApp {
       (this.timelineElement as any).duration = duration ?? 0;
       
       if (Math.floor(currentTime) % 5 === 0) {
-        console.log('Properties set. Element currentTime:', (this.timelineElement as any).currentTime);
       }
     }
   }
@@ -817,20 +812,15 @@ class YouTubeLooperApp {
 
   private checkForSharedLoops() {
     const hash = window.location.hash;
-    console.log('Checking for shared loops, hash:', hash);
     
     if (!hash || !hash.includes('loops=')) {
-      console.log('No loops in hash');
       return;
     }
 
     const match = hash.match(/loops=([A-Za-z0-9_-]+)/);
     if (!match) {
-      console.log('No match found');
       return;
     }
-
-    console.log('Found loops data:', match[1]);
 
     try {
       // Decode base64 URL-safe format
@@ -857,13 +847,11 @@ class YouTubeLooperApp {
         ...(data.r && { playbackSpeed: data.r })
       }));
 
-      console.log('Imported loops:', importedLoops);
-
       if (importedLoops.length > 0) {
         this.showImportPrompt(importedLoops);
       }
     } catch (error) {
-      console.error('Error decoding shared loops:', error);
+      // Silently fail if loops cannot be decoded
     }
   }
 
@@ -1128,7 +1116,6 @@ class YouTubeLooperApp {
   }
 
   private handlePitchChanged(semitones: number) {
-    console.log(`Setting pitch shift to ${semitones} semitones`);
     this.playerService.setPitchShift(semitones);
   }
 
@@ -1145,8 +1132,6 @@ class YouTubeLooperApp {
       (this.timelineElement as any).activeLoopId = activeLoopId;
       (this.timelineElement as any).currentTime = currentTime;
       (this.timelineElement as any).duration = duration;
-      
-      console.log('Timeline loops after setting:', (this.timelineElement as any).loops);
     }
 
     if (this.sidebarElement) {

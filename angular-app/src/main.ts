@@ -33,5 +33,5 @@ if ((window as any).__youtubeLooperInitialized) {
       throw err;
     }
   })
-  .catch((err) => console.error('Failed to initialize Web Components:', err));
+  .catch(() => {});
 }

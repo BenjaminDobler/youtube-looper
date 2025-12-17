@@ -20,7 +20,6 @@ export class YouTubePlayerService {
       return;
     }
 
-    console.log('YouTube video element initialized');
     this.setupEventListeners();
     this.setupWebAudio();
   }
@@ -43,10 +42,8 @@ export class YouTubePlayerService {
       // Connect: source -> gain -> destination
       this.sourceNode.connect(this.gainNode);
       this.gainNode.connect(this.audioContext.destination);
-      
-      console.log('Web Audio API initialized for pitch control');
     } catch (error) {
-      console.error('Failed to initialize Web Audio API:', error);
+      // Silently fail - audio will still work without pitch shifting
     }
   }
 
@@ -63,7 +60,6 @@ export class YouTubePlayerService {
   }
 
   public reinitialize() {
-    console.log('Reinitializing YouTube player service');
     this.initPlayer();
   }
 
@@ -120,8 +116,6 @@ export class YouTubePlayerService {
     (this.video as any).preservesPitch = false;
     (this.video as any).mozPreservesPitch = false;
     (this.video as any).webkitPreservesPitch = false;
-    
-    console.log(`Pitch shift set to ${semitones} semitones (rate: ${rate})`);
   }
   
   /**
