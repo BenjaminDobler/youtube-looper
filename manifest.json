@@ -2,12 +2,10 @@
   "manifest_version": 3,
   "name": "YouTube Looper",
   "version": "1.0.0",
-  "description": "Create, manage, and share video loops on YouTube. Features timeline controls, pitch shifting for music practice, adjustable playback speed, and easy loop sharing via URL.",
+  "description": "Create and share video loops on YouTube with timeline controls, pitch shifting, and adjustable playback speed.",
   "homepage_url": "https://github.com/BenjaminDobler/youtube-looper",
   "permissions": [
-    "storage",
-    "activeTab",
-    "scripting"
+    "storage"
   ],
   "host_permissions": [
     "https://www.youtube.com/*"
