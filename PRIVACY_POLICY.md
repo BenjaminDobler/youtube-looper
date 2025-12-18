@@ -22,10 +22,8 @@ All data created by YouTube Looper is stored locally on your device using:
 
 The extension requires the following permissions:
 
-- **storage**: To save your loop configurations locally on your device
-- **activeTab**: To interact with YouTube pages you're currently viewing
-- **scripting**: To inject the loop interface into YouTube pages
-- **host_permissions (youtube.com)**: To run only on YouTube pages
+- **storage**: To save your loop configurations locally on your device using Chrome's storage API
+- **host_permissions (youtube.com)**: To run only on YouTube pages and inject the loop interface
 
 These permissions are used solely to provide the loop functionality and are not used to collect or transmit any data.
 
