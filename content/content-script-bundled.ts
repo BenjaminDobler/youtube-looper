@@ -465,6 +465,11 @@ class YouTubeLooperApp {
   private countdownOverlay: HTMLElement | null = null;
   
   private currentVideoId: string | null = null;
+  
+  // Loop creation mode state
+  private isCreatingLoop: boolean = false;
+  private tempLoopId: string | null = null;
+  private creationStartTime: number = 0;
 
   constructor() {
     try {
@@ -747,11 +752,13 @@ class YouTubeLooperApp {
     this.playerService.onTimeUpdate((currentTime) => {
       this.updateComponentsTime(currentTime);
       this.loopManager.checkLoop(currentTime);
+      this.updateCreationMode(currentTime);
     });
 
     this.watchForVideoChanges();
     this.listenToComponentEvents();
     this.listenToChromeMessages();
+    this.setupKeyboardShortcuts();
   }
 
   private updateComponentsTime(currentTime: number) {
@@ -1156,6 +1163,106 @@ class YouTubeLooperApp {
         }
       }
     });
+  }
+  
+  private setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e: KeyboardEvent) => {
+      // Check for Ctrl/Cmd + L
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        this.handleLoopCreationShortcut();
+        return;
+      }
+      
+      // Check for Escape to cancel loop creation
+      if (e.key === 'Escape' && this.isCreatingLoop) {
+        e.preventDefault();
+        this.cancelLoopCreation();
+        return;
+      }
+    });
+  }
+  
+  private handleLoopCreationShortcut() {
+    if (!this.isCreatingLoop) {
+      // Start creation mode
+      this.startLoopCreation();
+    } else {
+      // Finish creation mode
+      this.finishLoopCreation();
+    }
+  }
+  
+  private startLoopCreation() {
+    const currentTime = this.playerService.getCurrentTime();
+    if (currentTime === null) return;
+    
+    this.isCreatingLoop = true;
+    this.creationStartTime = currentTime;
+    
+    // Create a temporary loop
+    const tempLoop = this.loopManager.createLoop(
+      currentTime,
+      currentTime + 1, // Initial 1 second duration
+      'Creating...'
+    );
+    
+    this.tempLoopId = tempLoop.id;
+    this.syncComponentsWithLoops();
+  }
+  
+  private async finishLoopCreation() {
+    if (!this.tempLoopId || !this.currentVideoId) return;
+    
+    const currentTime = this.playerService.getCurrentTime();
+    if (currentTime === null) return;
+    
+    // Update the temporary loop with final end time and proper name
+    const tempLoop = this.loopManager.getLoops().find(l => l.id === this.tempLoopId);
+    if (tempLoop) {
+      const loopNumber = this.loopManager.getLoops().length;
+      tempLoop.name = `Loop ${loopNumber}`;
+      tempLoop.endTime = currentTime;
+      
+      this.loopManager.updateLoop(tempLoop);
+      await this.storageService.saveLoops(this.currentVideoId, this.loopManager.getLoops());
+      
+      // Notify background (if chrome is available)
+      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+        chrome.runtime.sendMessage({
+          type: MessageType.LOOP_CREATED,
+          payload: { videoId: this.currentVideoId, loop: tempLoop }
+        });
+      }
+    }
+    
+    this.isCreatingLoop = false;
+    this.tempLoopId = null;
+    this.syncComponentsWithLoops();
+  }
+  
+  private async cancelLoopCreation() {
+    if (!this.tempLoopId || !this.currentVideoId) return;
+    
+    // Delete the temporary loop
+    this.loopManager.deleteLoop(this.tempLoopId);
+    await this.storageService.saveLoops(this.currentVideoId, this.loopManager.getLoops());
+    
+    this.isCreatingLoop = false;
+    this.tempLoopId = null;
+    this.syncComponentsWithLoops();
+  }
+  
+  private updateCreationMode(currentTime: number) {
+    if (!this.isCreatingLoop || !this.tempLoopId) return;
+    
+    // Update the temporary loop's end time as video plays
+    const tempLoop = this.loopManager.getLoops().find(l => l.id === this.tempLoopId);
+    if (tempLoop && currentTime > this.creationStartTime) {
+      tempLoop.endTime = currentTime;
+      this.loopManager.updateLoop(tempLoop);
+      this.syncComponentsWithLoops();
+    }
   }
 }
 
