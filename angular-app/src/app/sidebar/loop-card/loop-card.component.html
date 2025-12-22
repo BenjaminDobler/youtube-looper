@@ -1,0 +1,149 @@
+<div 
+  class="loop-card"
+  [class.active]="isActive()"
+  (click)="onToggle()"
+>
+  <div class="loop-color-bar" [style.background]="loop().color"></div>
+  
+  <div class="loop-content">
+    @if (!isEditing()) {
+      <!-- Loop name -->
+      <div class="loop-name">
+        {{ loop().name }}
+      </div>
+    } @else {
+      <!-- Edit mode -->
+      <div class="loop-edit" (click)="$event.stopPropagation()">
+        <div class="edit-field">
+          <label>Name:</label>
+          <input 
+            type="text" 
+            [(ngModel)]="editingName"
+            (keydown)="onInputKeydown($event)"
+            (keydown.enter)="onSaveEdit()"
+            (keydown.escape)="onCancelEdit()"
+            class="edit-input"
+            autofocus
+          />
+        </div>
+        <div class="edit-field">
+          <label>Start:</label>
+          <div class="time-input-group">
+            <input 
+              type="text" 
+              [value]="formattedStartTime()"
+              (input)="onStartTimeChange($any($event.target).value)"
+              (keydown)="onInputKeydown($event)"
+              (keydown.enter)="onSaveEdit()"
+              (keydown.escape)="onCancelEdit()"
+              class="edit-input time-input"
+              placeholder="MM:SS.mmm"
+            />
+            <button 
+              class="btn-target" 
+              (click)="onSetStartToCurrent()"
+              title="Set to current time"
+              type="button"
+            >
+              <app-icon name="target" [size]="16"></app-icon>
+            </button>
+          </div>
+        </div>
+        <div class="edit-field">
+          <label>End:</label>
+          <div class="time-input-group">
+            <input 
+              type="text" 
+              [value]="formattedEndTime()"
+              (input)="onEndTimeChange($any($event.target).value)"
+              (keydown)="onInputKeydown($event)"
+              (keydown.enter)="onSaveEdit()"
+              (keydown.escape)="onCancelEdit()"
+              class="edit-input time-input"
+              placeholder="MM:SS.mmm"
+            />
+            <button 
+              class="btn-target" 
+              (click)="onSetEndToCurrent()"
+              title="Set to current time"
+              type="button"
+            >
+              <app-icon name="target" [size]="16"></app-icon>
+            </button>
+          </div>
+        </div>
+        <div class="edit-field">
+          <label>Pause:</label>
+          <input 
+            type="number" 
+            [(ngModel)]="editingPauseDuration"
+            (keydown)="onInputKeydown($event)"
+            (keydown.enter)="onSaveEdit()"
+            (keydown.escape)="onCancelEdit()"
+            class="edit-input time-input"
+            placeholder="0"
+            min="0"
+            step="1"
+          />
+          <span class="field-hint">sec</span>
+        </div>
+        <div class="edit-field">
+          <label>Speed:</label>
+          <input 
+            type="number" 
+            [(ngModel)]="editingPlaybackSpeed"
+            (keydown)="onInputKeydown($event)"
+            (keydown.enter)="onSaveEdit()"
+            (keydown.escape)="onCancelEdit()"
+            class="edit-input time-input"
+            placeholder="1.0"
+            min="0.25"
+            max="2.0"
+            step="0.25"
+          />
+          <span class="field-hint">×</span>
+        </div>
+        <div class="edit-buttons">
+          <button class="btn-save" (click)="onSaveEdit()">
+            <app-icon name="check" [size]="16"></app-icon>
+          </button>
+          <button class="btn-cancel" (click)="onCancelEdit()">
+            <app-icon name="x" [size]="16"></app-icon>
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- Loop info -->
+    <div class="loop-info">
+      <span class="time-range">{{ loopTimeRange() }}</span>
+      <span class="duration">{{ loopDuration() }}</span>
+    </div>
+
+    <!-- Loop actions -->
+    <div class="loop-actions" (click)="$event.stopPropagation()">
+      <button 
+        class="btn-action btn-edit" 
+        (click)="onEditLoop($event)"
+        title="Edit loop name"
+      >
+        <app-icon name="edit" [size]="14"></app-icon>
+      </button>
+      <button 
+        class="btn-action btn-delete" 
+        (click)="onDeleteLoop($event)"
+        title="Delete loop"
+      >
+        <app-icon name="trash" [size]="14"></app-icon>
+      </button>
+    </div>
+  </div>
+
+  @if (isActive()) {
+    <!-- Active indicator -->
+    <div class="active-indicator">
+      <span class="pulse"></span>
+      Playing
+    </div>
+  }
+</div>

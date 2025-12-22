@@ -1,0 +1,42 @@
+<div class="tab-content">
+  <div class="sidebar-header">
+    <h3>Video Library</h3>
+    <div class="header-actions">
+      <button 
+        class="btn-refresh" 
+        (click)="loadVideoLibrary()"
+        title="Refresh library"
+        [disabled]="isLoadingVideos()"
+      >
+        <app-icon name="refresh-cw" [size]="14"></app-icon>
+      </button>
+    </div>
+  </div>
+
+  @if (isLoadingVideos()) {
+    <div class="loading-state">
+      <p>Loading videos...</p>
+    </div>
+  } @else if (allVideos().length > 0) {
+    <div class="videos-list">
+      @for (video of allVideos(); track video.videoId) {
+        <video-card
+          [videoId]="video.videoId"
+          [title]="video.title"
+          [thumbnail]="video.thumbnail"
+          [loops]="video.loops"
+          (videoClick)="onVideoClick(video.videoId)"
+          (delete)="onDeleteVideoLoops(video.videoId)"
+        />
+      }
+    </div>
+  } @else {
+    <div class="empty-state">
+      <div class="empty-icon">
+        <app-icon name="library" [size]="48"></app-icon>
+      </div>
+      <p>No videos in library</p>
+      <p class="empty-hint">Create loops on videos to see them here</p>
+    </div>
+  }
+</div>

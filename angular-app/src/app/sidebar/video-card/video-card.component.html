@@ -1,0 +1,35 @@
+<div 
+  class="video-card"
+  (click)="onClick()"
+>
+  <div class="video-thumbnail">
+    @if (thumbnail()) {
+      <img [src]="thumbnail()" [alt]="title()" />
+    } @else {
+      <div class="thumbnail-placeholder">
+        <app-icon name="repeat" [size]="32"></app-icon>
+      </div>
+    }
+    <div class="loop-count-badge">{{ loopCountText() }}</div>
+  </div>
+  <div class="video-info">
+    <div class="video-title" [title]="title()">{{ title() }}</div>
+    <div class="video-loops-preview">
+      @for (loop of visibleLoops(); track loop.id) {
+        <div class="loop-preview" [style.background]="loop.color"></div>
+      }
+      @if (additionalLoopsCount() > 0) {
+        <span class="more-loops">+{{ additionalLoopsCount() }}</span>
+      }
+    </div>
+  </div>
+  <div class="video-actions" (click)="$event.stopPropagation()">
+    <button 
+      class="btn-action btn-delete" 
+      (click)="onDelete($event)"
+      title="Delete all loops"
+    >
+      <app-icon name="trash" [size]="14"></app-icon>
+    </button>
+  </div>
+</div>

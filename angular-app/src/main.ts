@@ -2,7 +2,7 @@ import { createApplication } from '@angular/platform-browser';
 import { createCustomElement } from '@angular/elements';
 import { appConfig } from './app/app.config';
 import { TimelineComponent } from './app/timeline/timeline.component';
-import { SidebarComponent } from './app/sidebar/sidebar.component';
+import { SidebarComponent } from './app/sidebar/sidebar/sidebar.component';
 
 // Prevent double initialization
 if ((window as any).__youtubeLooperInitialized) {

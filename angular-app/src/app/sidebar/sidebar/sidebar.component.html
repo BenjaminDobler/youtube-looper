@@ -8,7 +8,7 @@
     >
       <app-icon name="repeat" [size]="16"></app-icon>
       <span>Loops</span>
-      <span class="tab-badge">{{ _loops().length }}</span>
+      <span class="tab-badge">{{ loops().length }}</span>
     </button>
     <button 
       class="tab-button" 
@@ -23,9 +23,9 @@
   <!-- Loops Tab Content -->
   @if (activeTab() === 'loops') {
     <loops-tab
-      [loops]="_loops()"
-      [activeLoopId]="_activeLoopId()"
-      [pitchShift]="_pitchShift()"
+      [loops]="loops()"
+      [activeLoopId]="activeLoopId()"
+      [pitchShift]="pitchShift()"
       (loopActivated)="loopActivated.emit($event)"
       (loopDeactivated)="loopDeactivated.emit()"
       (loopDeleted)="loopDeleted.emit($event)"
