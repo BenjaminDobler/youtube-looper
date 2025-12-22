@@ -1,33 +1,57 @@
 <div class="sidebar-container">
-  <div class="sidebar-header">
-    <h3>Loops</h3>
-    <div class="header-actions">
-      <span class="loop-count">{{ loops.length }}</span>
-      @if (loops.length > 0) {
-        <button 
-          class="btn-share" 
-          (click)="onShareLoops()"
-          [title]="shareSuccess() ? 'Copied!' : 'Share loops'"
-          [class.success]="shareSuccess()"
-        >
-          <app-icon name="share" [size]="14"></app-icon>
-        </button>
-      }
-    </div>
+  <!-- Tab Navigation -->
+  <div class="tab-navigation">
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab() === 'loops'"
+      (click)="onTabChange('loops')"
+    >
+      <app-icon name="repeat" [size]="16"></app-icon>
+      <span>Loops</span>
+      <span class="tab-badge">{{ loops.length }}</span>
+    </button>
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab() === 'library'"
+      (click)="onTabChange('library')"
+    >
+      <app-icon name="library" [size]="16"></app-icon>
+      <span>Library</span>
+      <span class="tab-badge">{{ allVideos().length }}</span>
+    </button>
   </div>
 
-  <!-- Pitch Control Section -->
-  <div class="pitch-control-section">
-    <div class="pitch-header">
-      <span class="pitch-label">Pitch</span>
-      <span class="pitch-value">{{ pitchShift > 0 ? '+' : '' }}{{ pitchShift }} {{ pitchShift === 1 || pitchShift === -1 ? 'semitone' : 'semitones' }}</span>
-    </div>
-    <div class="pitch-controls">
-      <button class="btn-pitch" (click)="onPitchDown()" title="Lower pitch by 1 semitone">-</button>
-      <button class="btn-pitch-reset" (click)="onPitchReset()" title="Reset pitch to normal">Reset</button>
-      <button class="btn-pitch" (click)="onPitchUp()" title="Raise pitch by 1 semitone">+</button>
-    </div>
-  </div>
+  <!-- Loops Tab Content -->
+  @if (activeTab() === 'loops') {
+    <div class="tab-content">
+      <div class="sidebar-header">
+        <h3>Current Video</h3>
+        <div class="header-actions">
+          @if (loops.length > 0) {
+            <button 
+              class="btn-share" 
+              (click)="onShareLoops()"
+              [title]="shareSuccess() ? 'Copied!' : 'Share loops'"
+              [class.success]="shareSuccess()"
+            >
+              <app-icon name="share" [size]="14"></app-icon>
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Pitch Control Section -->
+      <div class="pitch-control-section">
+        <div class="pitch-header">
+          <span class="pitch-label">Pitch</span>
+          <span class="pitch-value">{{ pitchShift > 0 ? '+' : '' }}{{ pitchShift }} {{ pitchShift === 1 || pitchShift === -1 ? 'semitone' : 'semitones' }}</span>
+        </div>
+        <div class="pitch-controls">
+          <button class="btn-pitch" (click)="onPitchDown()" title="Lower pitch by 1 semitone">-</button>
+          <button class="btn-pitch-reset" (click)="onPitchReset()" title="Reset pitch to normal">Reset</button>
+          <button class="btn-pitch" (click)="onPitchUp()" title="Raise pitch by 1 semitone">+</button>
+        </div>
+      </div>
 
   @if (loops.length > 0) {
     <div class="loops-list">
@@ -190,6 +214,75 @@
       </div>
       <p>No loops yet</p>
       <p class="empty-hint">Click on the timeline below the video to create your first loop</p>
+    </div>
+  }
+    </div>
+  }
+
+  <!-- Library Tab Content -->
+  @if (activeTab() === 'library') {
+    <div class="tab-content">
+      <div class="sidebar-header">
+        <h3>Video Library</h3>
+        <div class="header-actions">
+          <button 
+            class="btn-refresh" 
+            (click)="loadVideoLibrary()"
+            title="Refresh library"
+            [disabled]="isLoadingVideos()"
+          >
+            <app-icon name="refresh-cw" [size]="14"></app-icon>
+          </button>
+        </div>
+      </div>
+
+      @if (isLoadingVideos()) {
+        <div class="loading-state">
+          <p>Loading videos...</p>
+        </div>
+      } @else if (allVideos().length > 0) {
+        <div class="videos-list">
+          @for (video of allVideos(); track video.videoId) {
+            <div 
+              class="video-card"
+              (click)="onVideoClick(video.videoId)"
+            >
+              <div class="video-thumbnail">
+                <img [src]="video.thumbnail" [alt]="video.title" />
+                <div class="loop-count-badge">{{ video.loops.length }} loops</div>
+              </div>
+              <div class="video-info">
+                <div class="video-title" [title]="video.title">{{ video.title }}</div>
+                <div class="video-loops-preview">
+                  @for (loop of video.loops.slice(0, 3); track loop.id) {
+                    <div class="loop-preview" [style.background]="loop.color"></div>
+                  }
+                  @if (video.loops.length > 3) {
+                    <span class="more-loops">+{{ video.loops.length - 3 }}</span>
+                  }
+                </div>
+              </div>
+              <div class="video-actions" (click)="$event.stopPropagation()">
+                <button 
+                  class="btn-action btn-delete" 
+                  (click)="onDeleteVideoLoops(video.videoId, $event)"
+                  title="Delete all loops"
+                >
+                  <app-icon name="trash" [size]="14"></app-icon>
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="empty-state">
+          <div class="empty-icon">
+            <app-icon name="library" [size]="48"></app-icon>
+          </div>
+          <p>No videos in library</p>
+          <p class="empty-hint">Create loops on videos to see them here</p>
+        </div>
+      }
     </div>
   }
 </div>

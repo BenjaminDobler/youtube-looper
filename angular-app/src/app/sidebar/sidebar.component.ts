@@ -1,7 +1,16 @@
-import { Component, ViewEncapsulation, signal, computed, Input, Output, EventEmitter } from '@angular/core';
+import { Component, ViewEncapsulation, signal, computed, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Loop } from '../models/loop.model';
 import { IconComponent } from '../shared/icon.component';
+
+interface VideoWithLoops {
+  videoId: string;
+  title: string;
+  loops: Loop[];
+  thumbnail: string;
+}
+
+type TabType = 'loops' | 'library';
 
 @Component({
   selector: 'youtube-loop-sidebar',
@@ -11,7 +20,7 @@ import { IconComponent } from '../shared/icon.component';
   styleUrls: ['./sidebar.component.scss'],
   encapsulation: ViewEncapsulation.ShadowDom
 })
-export class SidebarComponent {
+export class SidebarComponent implements OnInit {
   // Traditional inputs for Angular Elements compatibility
   @Input() set loops(value: Loop[]) { this._loops.set(value); }
   get loops() { return this._loops(); }
@@ -26,14 +35,19 @@ export class SidebarComponent {
   private _loops = signal<Loop[]>([]);
   private _activeLoopId = signal<string | null>(null);
   private _pitchShift = signal<number>(0);
+  
+  // Tab state
+  protected activeTab = signal<TabType>('loops');
+  protected allVideos = signal<VideoWithLoops[]>([]);
+  protected isLoadingVideos = signal<boolean>(false);
 
-  // Traditional outputs
   @Output() loopActivated = new EventEmitter<{ loopId: string }>();
   @Output() loopDeactivated = new EventEmitter<void>();
   @Output() loopDeleted = new EventEmitter<{ loopId: string }>();
   @Output() loopUpdated = new EventEmitter<{ loop: Loop }>();
   @Output() getCurrentTime = new EventEmitter<{ callback: (time: number) => void }>();
   @Output() pitchChanged = new EventEmitter<{ semitones: number }>();
+  @Output() videoSelected = new EventEmitter<{ videoId: string }>();
 
   // Internal state
   protected editingLoopId = signal<string | null>(null);
@@ -44,6 +58,112 @@ export class SidebarComponent {
   protected editingPauseDuration = signal<number>(0);
   protected editingPlaybackSpeed = signal<number>(1.0);
   protected shareSuccess = signal<boolean>(false);
+  
+  ngOnInit() {
+    // Load video library when component initializes
+    this.loadVideoLibrary();
+  }
+  
+  // Switch tabs
+  onTabChange(tab: TabType) {
+    this.activeTab.set(tab);
+    if (tab === 'library') {
+      this.loadVideoLibrary();
+    }
+  }
+  
+  // Load all videos with loops
+  async loadVideoLibrary() {
+    this.isLoadingVideos.set(true);
+    
+    try {
+      // Get all video IDs from storage
+      const videoIds = await this.getAllVideoIdsFromStorage();
+      
+      // Load loops for each video
+      const videos: VideoWithLoops[] = [];
+      for (const videoId of videoIds) {
+        const loops = await this.getLoopsFromStorage(videoId);
+        if (loops.length > 0) {
+          videos.push({
+            videoId,
+            title: await this.getVideoTitle(videoId),
+            loops,
+            thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+          });
+        }
+      }
+      
+      this.allVideos.set(videos);
+    } catch (error) {
+      console.error('Error loading video library:', error);
+    } finally {
+      this.isLoadingVideos.set(false);
+    }
+  }
+  
+  // Navigate to a video
+  onVideoClick(videoId: string) {
+    window.location.href = `https://www.youtube.com/watch?v=${videoId}`;
+  }
+  
+  // Delete all loops for a video
+  async onDeleteVideoLoops(videoId: string, event: MouseEvent) {
+    event.stopPropagation();
+    
+    const video = this.allVideos().find(v => v.videoId === videoId);
+    if (!video) return;
+    
+    if (confirm(`Delete all ${video.loops.length} loops for this video?`)) {
+      try {
+        await this.deleteLoopsFromStorage(videoId);
+        // Reload library
+        await this.loadVideoLibrary();
+      } catch (error) {
+        console.error('Error deleting video loops:', error);
+      }
+    }
+  }
+  
+  // Helper methods to interact with chrome.storage
+  private getAllVideoIdsFromStorage(): Promise<string[]> {
+    return new Promise((resolve) => {
+      (window as any).chrome.storage.local.get(null, (items: any) => {
+        resolve(Object.keys(items));
+      });
+    });
+  }
+  
+  private getLoopsFromStorage(videoId: string): Promise<Loop[]> {
+    return new Promise((resolve) => {
+      (window as any).chrome.storage.local.get([videoId], (result: any) => {
+        resolve(result[videoId] || []);
+      });
+    });
+  }
+  
+  private deleteLoopsFromStorage(videoId: string): Promise<void> {
+    return new Promise((resolve) => {
+      (window as any).chrome.storage.local.remove([videoId], () => {
+        resolve();
+      });
+    });
+  }
+  
+  // Get video title from YouTube API or page
+  private async getVideoTitle(videoId: string): Promise<string> {
+    try {
+      // Try to fetch video info from YouTube's oEmbed API
+      const response = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
+      if (response.ok) {
+        const data = await response.json();
+        return data.title;
+      }
+    } catch (error) {
+      // Fallback to video ID if fetch fails
+    }
+    return `Video ${videoId}`;
+  }
 
   // Prevent YouTube keyboard shortcuts when typing in inputs
   onInputKeydown(event: KeyboardEvent) {
