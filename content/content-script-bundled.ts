@@ -541,6 +541,11 @@ class YouTubeLooperApp {
   private isCreatingLoop: boolean = false;
   private tempLoopId: string | null = null;
   private creationStartTime: number = 0;
+  
+  // Continuous loop mode state (Ctrl/Cmd+K)
+  private isContinuousMode: boolean = false;
+  private continuousTempLoopId: string | null = null;
+  private continuousStartTime: number = 0;
 
   constructor() {
     try {
@@ -824,6 +829,7 @@ class YouTubeLooperApp {
       this.updateComponentsTime(currentTime);
       this.loopManager.checkLoop(currentTime);
       this.updateCreationMode(currentTime);
+      this.updateContinuousMode(currentTime);
     });
 
     this.watchForVideoChanges();
@@ -1238,17 +1244,29 @@ class YouTubeLooperApp {
   
   private setupKeyboardShortcuts() {
     document.addEventListener('keydown', (e: KeyboardEvent) => {
-      // Check for Ctrl/Cmd + L
+      // Check for Ctrl/Cmd + L (single loop creation)
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'l') {
         e.preventDefault();
         this.handleLoopCreationShortcut();
         return;
       }
       
-      // Check for Escape to cancel loop creation
-      if (e.key === 'Escape' && this.isCreatingLoop) {
+      // Check for Ctrl/Cmd + K (continuous loop creation)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        this.cancelLoopCreation();
+        this.handleContinuousLoopShortcut();
+        return;
+      }
+      
+      // Check for Escape to cancel loop creation
+      if (e.key === 'Escape' && (this.isCreatingLoop || this.isContinuousMode)) {
+        e.preventDefault();
+        if (this.isCreatingLoop) {
+          this.cancelLoopCreation();
+        }
+        if (this.isContinuousMode) {
+          this.cancelContinuousMode();
+        }
         return;
       }
     });
@@ -1330,6 +1348,97 @@ class YouTubeLooperApp {
     // Update the temporary loop's end time as video plays
     const tempLoop = this.loopManager.getLoops().find(l => l.id === this.tempLoopId);
     if (tempLoop && currentTime > this.creationStartTime) {
+      tempLoop.endTime = currentTime;
+      this.loopManager.updateLoop(tempLoop);
+      this.syncComponentsWithLoops();
+    }
+  }
+  
+  // Continuous loop creation mode (Ctrl/Cmd+K)
+  private handleContinuousLoopShortcut() {
+    if (!this.isContinuousMode) {
+      // First press: start continuous mode
+      this.startContinuousMode();
+    } else {
+      // Subsequent presses: finish current loop and start next one
+      this.finishContinuousLoop();
+    }
+  }
+  
+  private startContinuousMode() {
+    const currentTime = this.playerService.getCurrentTime();
+    if (currentTime === null) return;
+    
+    this.isContinuousMode = true;
+    this.continuousStartTime = currentTime;
+    
+    // Create first temporary loop
+    const tempLoop = this.loopManager.createLoop(
+      currentTime,
+      currentTime + 1, // Initial 1 second duration
+      'Creating...'
+    );
+    
+    this.continuousTempLoopId = tempLoop.id;
+    this.syncComponentsWithLoops();
+  }
+  
+  private async finishContinuousLoop() {
+    if (!this.continuousTempLoopId || !this.currentVideoId) return;
+    
+    const currentTime = this.playerService.getCurrentTime();
+    if (currentTime === null) return;
+    
+    // Update the temporary loop with final end time and proper name
+    const tempLoop = this.loopManager.getLoops().find(l => l.id === this.continuousTempLoopId);
+    if (tempLoop) {
+      const loopNumber = this.loopManager.getLoops().filter(l => l.id !== this.continuousTempLoopId).length + 1;
+      tempLoop.name = `Loop ${loopNumber}`;
+      tempLoop.endTime = currentTime;
+      
+      this.loopManager.updateLoop(tempLoop);
+      await this.storageService.saveLoops(this.currentVideoId, this.loopManager.getLoops());
+      
+      // Notify background (if chrome is available)
+      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+        chrome.runtime.sendMessage({
+          type: MessageType.LOOP_CREATED,
+          payload: { videoId: this.currentVideoId, loop: tempLoop }
+        });
+      }
+    }
+    
+    // Immediately start the next loop with start time = previous end time
+    this.continuousStartTime = currentTime;
+    
+    const nextLoop = this.loopManager.createLoop(
+      currentTime,
+      currentTime + 1, // Initial 1 second duration
+      'Creating...'
+    );
+    
+    this.continuousTempLoopId = nextLoop.id;
+    this.syncComponentsWithLoops();
+  }
+  
+  private async cancelContinuousMode() {
+    if (!this.continuousTempLoopId || !this.currentVideoId) return;
+    
+    // Delete the temporary loop
+    this.loopManager.deleteLoop(this.continuousTempLoopId);
+    await this.storageService.saveLoops(this.currentVideoId, this.loopManager.getLoops());
+    
+    this.isContinuousMode = false;
+    this.continuousTempLoopId = null;
+    this.syncComponentsWithLoops();
+  }
+  
+  private updateContinuousMode(currentTime: number) {
+    if (!this.isContinuousMode || !this.continuousTempLoopId) return;
+    
+    // Update the temporary loop's end time as video plays
+    const tempLoop = this.loopManager.getLoops().find(l => l.id === this.continuousTempLoopId);
+    if (tempLoop && currentTime > this.continuousStartTime) {
       tempLoop.endTime = currentTime;
       this.loopManager.updateLoop(tempLoop);
       this.syncComponentsWithLoops();
