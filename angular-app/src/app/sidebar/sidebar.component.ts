@@ -125,28 +125,42 @@ export class SidebarComponent implements OnInit {
     }
   }
   
-  // Helper methods to interact with chrome.storage
+  // Helper methods to interact with localStorage
   private getAllVideoIdsFromStorage(): Promise<string[]> {
     return new Promise((resolve) => {
-      (window as any).chrome.storage.local.get(null, (items: any) => {
-        resolve(Object.keys(items));
-      });
+      const videoIds: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('yt-looper-')) {
+          videoIds.push(key.replace('yt-looper-', ''));
+        }
+      }
+      resolve(videoIds);
     });
   }
   
   private getLoopsFromStorage(videoId: string): Promise<Loop[]> {
     return new Promise((resolve) => {
-      (window as any).chrome.storage.local.get([videoId], (result: any) => {
-        resolve(result[videoId] || []);
-      });
+      const key = `yt-looper-${videoId}`;
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        try {
+          const loops = JSON.parse(stored);
+          resolve(loops);
+        } catch (error) {
+          resolve([]);
+        }
+      } else {
+        resolve([]);
+      }
     });
   }
   
   private deleteLoopsFromStorage(videoId: string): Promise<void> {
     return new Promise((resolve) => {
-      (window as any).chrome.storage.local.remove([videoId], () => {
-        resolve();
-      });
+      const key = `yt-looper-${videoId}`;
+      localStorage.removeItem(key);
+      resolve();
     });
   }
   
