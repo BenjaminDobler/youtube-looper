@@ -218,13 +218,28 @@ class YouTubePlayerService {
 // Storage Service
 // ============================================================================
 
+interface VideoMetadata {
+  videoId: string;
+  title: string;
+  thumbnail: string;
+}
+
+interface VideoData {
+  metadata: VideoMetadata;
+  loops: Loop[];
+}
+
 class StorageService {
   
   public async getLoops(videoId: string): Promise<Loop[]> {
     try {
       const key = `loops_${videoId}`;
       const stored = localStorage.getItem(key);
-      return stored ? JSON.parse(stored) : [];
+      if (!stored) return [];
+      
+      const data = JSON.parse(stored);
+      // Handle both old format (array) and new format (VideoData)
+      return Array.isArray(data) ? data : data.loops || [];
     } catch (error) {
       return [];
     }
@@ -233,10 +248,66 @@ class StorageService {
   public async saveLoops(videoId: string, loops: Loop[]): Promise<void> {
     try {
       const key = `loops_${videoId}`;
-      localStorage.setItem(key, JSON.stringify(loops));
+      
+      // Get existing data to preserve metadata
+      const stored = localStorage.getItem(key);
+      let metadata: VideoMetadata | null = null;
+      
+      if (stored) {
+        try {
+          const data = JSON.parse(stored);
+          if (!Array.isArray(data) && data.metadata) {
+            metadata = data.metadata;
+          }
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+      
+      // If no metadata exists, create it
+      if (!metadata) {
+        metadata = this.extractVideoMetadata(videoId);
+      }
+      
+      const videoData: VideoData = {
+        metadata,
+        loops
+      };
+      
+      localStorage.setItem(key, JSON.stringify(videoData));
     } catch (error) {
       // Silent fail
     }
+  }
+  
+  public async getVideoMetadata(videoId: string): Promise<VideoMetadata | null> {
+    try {
+      const key = `loops_${videoId}`;
+      const stored = localStorage.getItem(key);
+      if (!stored) return null;
+      
+      const data = JSON.parse(stored);
+      return (!Array.isArray(data) && data.metadata) ? data.metadata : null;
+    } catch (error) {
+      return null;
+    }
+  }
+  
+  private extractVideoMetadata(videoId: string): VideoMetadata {
+    // Extract video title from page
+    const titleElement = document.querySelector('h1.ytd-watch-metadata yt-formatted-string') ||
+                        document.querySelector('h1.title yt-formatted-string') ||
+                        document.querySelector('#title h1');
+    const title = titleElement?.textContent?.trim() || `Video ${videoId}`;
+    
+    // Generate thumbnail URL
+    const thumbnail = `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
+    
+    return {
+      videoId,
+      title,
+      thumbnail
+    };
   }
 
   public async deleteLoops(videoId: string): Promise<void> {

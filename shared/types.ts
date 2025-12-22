@@ -10,6 +10,17 @@ export interface Loop {
   pitchShift?: number;
 }
 
+export interface VideoMetadata {
+  videoId: string;
+  title: string;
+  thumbnail: string;
+}
+
+export interface VideoData {
+  metadata: VideoMetadata;
+  loops: Loop[];
+}
+
 export enum MessageType {
   // Loop CRUD operations
   LOOP_CREATED = 'LOOP_CREATED',

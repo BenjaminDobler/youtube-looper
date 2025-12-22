@@ -10,6 +10,17 @@ interface VideoWithLoops {
   thumbnail: string;
 }
 
+interface VideoMetadata {
+  videoId: string;
+  title: string;
+  thumbnail: string;
+}
+
+interface VideoData {
+  metadata: VideoMetadata;
+  loops: Loop[];
+}
+
 type TabType = 'loops' | 'library';
 
 @Component({
@@ -85,14 +96,14 @@ export class SidebarComponent implements OnInit {
       // Load loops for each video
       const videos: VideoWithLoops[] = [];
       for (const videoId of videoIds) {
-        const loops = await this.getLoopsFromStorage(videoId);
-        console.log(`Video ${videoId} has ${loops.length} loops`);
-        if (loops.length > 0) {
+        const videoData = await this.getVideoDataFromStorage(videoId);
+        console.log(`Video ${videoId} has ${videoData.loops.length} loops`);
+        if (videoData.loops.length > 0) {
           videos.push({
             videoId,
-            title: `Video: ${videoId}`,
-            loops,
-            thumbnail: '' // Empty to avoid cross-origin issues
+            title: videoData.metadata.title,
+            loops: videoData.loops,
+            thumbnail: videoData.metadata.thumbnail
           });
         }
       }
@@ -143,14 +154,60 @@ export class SidebarComponent implements OnInit {
     });
   }
   
+  private getVideoDataFromStorage(videoId: string): Promise<VideoData> {
+    return new Promise((resolve) => {
+      const key = `loops_${videoId}`;
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        try {
+          const data = JSON.parse(stored);
+          // Handle both old format (array) and new format (VideoData)
+          if (Array.isArray(data)) {
+            // Old format - create metadata
+            resolve({
+              metadata: {
+                videoId,
+                title: `Video: ${videoId}`,
+                thumbnail: `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`
+              },
+              loops: data
+            });
+          } else {
+            // New format
+            resolve(data);
+          }
+        } catch (error) {
+          resolve({
+            metadata: {
+              videoId,
+              title: `Video: ${videoId}`,
+              thumbnail: `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`
+            },
+            loops: []
+          });
+        }
+      } else {
+        resolve({
+          metadata: {
+            videoId,
+            title: `Video: ${videoId}`,
+            thumbnail: `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`
+          },
+          loops: []
+        });
+      }
+    });
+  }
+  
   private getLoopsFromStorage(videoId: string): Promise<Loop[]> {
     return new Promise((resolve) => {
       const key = `loops_${videoId}`;
       const stored = localStorage.getItem(key);
       if (stored) {
         try {
-          const loops = JSON.parse(stored);
-          resolve(loops);
+          const data = JSON.parse(stored);
+          // Handle both old format (array) and new format (VideoData)
+          resolve(Array.isArray(data) ? data : data.loops || []);
         } catch (error) {
           resolve([]);
         }
