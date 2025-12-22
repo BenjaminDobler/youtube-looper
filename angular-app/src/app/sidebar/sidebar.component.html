@@ -248,7 +248,13 @@
               (click)="onVideoClick(video.videoId)"
             >
               <div class="video-thumbnail">
-                <img [src]="video.thumbnail" [alt]="video.title" />
+                @if (video.thumbnail) {
+                  <img [src]="video.thumbnail" [alt]="video.title" />
+                } @else {
+                  <div class="thumbnail-placeholder">
+                    <app-icon name="repeat" [size]="32"></app-icon>
+                  </div>
+                }
                 <div class="loop-count-badge">{{ video.loops.length }} loops</div>
               </div>
               <div class="video-info">

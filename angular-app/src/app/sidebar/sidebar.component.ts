@@ -80,20 +80,24 @@ export class SidebarComponent implements OnInit {
       // Get all video IDs from storage
       const videoIds = await this.getAllVideoIdsFromStorage();
       
+      console.log('Found video IDs:', videoIds);
+      
       // Load loops for each video
       const videos: VideoWithLoops[] = [];
       for (const videoId of videoIds) {
         const loops = await this.getLoopsFromStorage(videoId);
+        console.log(`Video ${videoId} has ${loops.length} loops`);
         if (loops.length > 0) {
           videos.push({
             videoId,
             title: `Video: ${videoId}`,
             loops,
-            thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+            thumbnail: '' // Empty to avoid cross-origin issues
           });
         }
       }
       
+      console.log('Loaded videos:', videos.length);
       this.allVideos.set(videos);
     } catch (error) {
       console.error('Error loading video library:', error);
@@ -131,8 +135,8 @@ export class SidebarComponent implements OnInit {
       const videoIds: string[] = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && key.startsWith('yt-looper-')) {
-          videoIds.push(key.replace('yt-looper-', ''));
+        if (key && key.startsWith('loops_')) {
+          videoIds.push(key.replace('loops_', ''));
         }
       }
       resolve(videoIds);
@@ -141,7 +145,7 @@ export class SidebarComponent implements OnInit {
   
   private getLoopsFromStorage(videoId: string): Promise<Loop[]> {
     return new Promise((resolve) => {
-      const key = `yt-looper-${videoId}`;
+      const key = `loops_${videoId}`;
       const stored = localStorage.getItem(key);
       if (stored) {
         try {
@@ -158,7 +162,7 @@ export class SidebarComponent implements OnInit {
   
   private deleteLoopsFromStorage(videoId: string): Promise<void> {
     return new Promise((resolve) => {
-      const key = `yt-looper-${videoId}`;
+      const key = `loops_${videoId}`;
       localStorage.removeItem(key);
       resolve();
     });
