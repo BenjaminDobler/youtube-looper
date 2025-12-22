@@ -87,7 +87,7 @@ export class SidebarComponent implements OnInit {
         if (loops.length > 0) {
           videos.push({
             videoId,
-            title: await this.getVideoTitle(videoId),
+            title: `Video: ${videoId}`,
             loops,
             thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
           });
@@ -162,21 +162,6 @@ export class SidebarComponent implements OnInit {
       localStorage.removeItem(key);
       resolve();
     });
-  }
-  
-  // Get video title from YouTube API or page
-  private async getVideoTitle(videoId: string): Promise<string> {
-    try {
-      // Try to fetch video info from YouTube's oEmbed API
-      const response = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
-      if (response.ok) {
-        const data = await response.json();
-        return data.title;
-      }
-    } catch (error) {
-      // Fallback to video ID if fetch fails
-    }
-    return `Video ${videoId}`;
   }
 
   // Prevent YouTube keyboard shortcuts when typing in inputs
