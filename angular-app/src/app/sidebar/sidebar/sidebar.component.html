@@ -1,42 +1,66 @@
-<div class="sidebar-container">
-  <!-- Tab Navigation -->
-  <div class="tab-navigation">
+<div class="sidebar-container" [class.minimized]="!isUIVisible()">
+  <!-- Toggle Button (always visible) -->
+  <div class="toggle-header">
     <button 
-      class="tab-button" 
-      [class.active]="activeTab() === 'loops'"
-      (click)="onTabChange('loops')"
+      class="toggle-button" 
+      (click)="onToggleUIVisibility()"
+      [attr.aria-label]="isUIVisible() ? 'Hide Looper' : 'Show Looper'"
+      [title]="isUIVisible() ? 'Hide Looper' : 'Show Looper'"
     >
-      <app-icon name="repeat" [size]="16"></app-icon>
-      <span>Loops</span>
-      <span class="tab-badge">{{ loops().length }}</span>
-    </button>
-    <button 
-      class="tab-button" 
-      [class.active]="activeTab() === 'library'"
-      (click)="onTabChange('library')"
-    >
-      <app-icon name="library" [size]="16"></app-icon>
-      <span>Library</span>
+      <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M8 12h8M12 8v8"/>
+      </svg>
+      <span class="toggle-text">{{ isUIVisible() ? 'Hide Looper' : 'Show Looper' }}</span>
+      @if (isUIVisible()) {
+        <app-icon name="chevron-right" [size]="16"></app-icon>
+      } @else {
+        <app-icon name="chevron-left" [size]="16"></app-icon>
+      }
     </button>
   </div>
 
-  <!-- Loops Tab Content -->
-  @if (activeTab() === 'loops') {
-    <loops-tab
-      [loops]="loops()"
-      [activeLoopId]="activeLoopId()"
-      [pitchShift]="pitchShift()"
-      (loopActivated)="loopActivated.emit($event)"
-      (loopDeactivated)="loopDeactivated.emit()"
-      (loopDeleted)="loopDeleted.emit($event)"
-      (loopUpdated)="loopUpdated.emit($event)"
-      (getCurrentTime)="getCurrentTime.emit($event)"
-      (pitchChanged)="pitchChanged.emit($event)"
-    />
-  }
+  <!-- Main Content (hidden when minimized) -->
+  @if (isUIVisible()) {
+    <!-- Tab Navigation -->
+    <div class="tab-navigation">
+      <button 
+        class="tab-button" 
+        [class.active]="activeTab() === 'loops'"
+        (click)="onTabChange('loops')"
+      >
+        <app-icon name="repeat" [size]="16"></app-icon>
+        <span>Loops</span>
+        <span class="tab-badge">{{ loops().length }}</span>
+      </button>
+      <button 
+        class="tab-button" 
+        [class.active]="activeTab() === 'library'"
+        (click)="onTabChange('library')"
+      >
+        <app-icon name="library" [size]="16"></app-icon>
+        <span>Library</span>
+      </button>
+    </div>
 
-  <!-- Library Tab Content -->
-  @if (activeTab() === 'library') {
-    <library-tab />
+    <!-- Loops Tab Content -->
+    @if (activeTab() === 'loops') {
+      <loops-tab
+        [loops]="loops()"
+        [activeLoopId]="activeLoopId()"
+        [pitchShift]="pitchShift()"
+        (loopActivated)="loopActivated.emit($event)"
+        (loopDeactivated)="loopDeactivated.emit()"
+        (loopDeleted)="loopDeleted.emit($event)"
+        (loopUpdated)="loopUpdated.emit($event)"
+        (getCurrentTime)="getCurrentTime.emit($event)"
+        (pitchChanged)="pitchChanged.emit($event)"
+      />
+    }
+
+    <!-- Library Tab Content -->
+    @if (activeTab() === 'library') {
+      <library-tab />
+    }
   }
 </div>

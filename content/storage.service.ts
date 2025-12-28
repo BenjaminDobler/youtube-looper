@@ -33,4 +33,21 @@ export class StorageService {
       });
     });
   }
+
+  public async getUIVisible(): Promise<boolean> {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(['uiVisible'], (result) => {
+        // Default to true (visible) if not set
+        resolve(result.uiVisible !== false);
+      });
+    });
+  }
+
+  public async setUIVisible(visible: boolean): Promise<void> {
+    return new Promise((resolve) => {
+      chrome.storage.local.set({ uiVisible: visible }, () => {
+        resolve();
+      });
+    });
+  }
 }

@@ -42,6 +42,7 @@ class YouTubeLooperApp {
   private storageService: StorageService;
   
   private timelineElement: HTMLElement | null = null;
+  private timelineContainer: HTMLElement | null = null;
   private sidebarElement: HTMLElement | null = null;
   
   private currentVideoId: string | null = null;
@@ -50,6 +51,9 @@ class YouTubeLooperApp {
   private isCreatingLoop: boolean = false;
   private tempLoopId: string | null = null;
   private creationStartTime: number = 0;
+  
+  // UI visibility state
+  private isUIVisible: boolean = true;
 
   constructor() {
     this.playerService = new YouTubePlayerService();
@@ -68,6 +72,16 @@ class YouTubeLooperApp {
     // Load Angular Web Components
     await this.loadAngularComponents();
     
+    // Load UI visibility preference from localStorage
+    try {
+      const saved = localStorage.getItem('yt-looper-ui-visible');
+      this.isUIVisible = saved !== 'false'; // Default to true
+      console.log('Content script: Loaded UI visibility preference from localStorage:', this.isUIVisible);
+    } catch (e) {
+      console.error('Failed to load visibility from localStorage:', e);
+      this.isUIVisible = true;
+    }
+    
     // Inject UI elements
     this.injectUI();
     
@@ -76,6 +90,14 @@ class YouTubeLooperApp {
     
     // Load loops for current video
     await this.handleVideoChange();
+    
+    // Apply initial UI visibility state after a short delay to ensure elements are ready
+    setTimeout(() => {
+      this.updateTimelineVisibility();
+    }, 100);
+    
+    // Poll localStorage for changes (since storage events don't work across worlds)
+    this.startVisibilityPolling();
     
     console.log('YouTube Looper: Initialized successfully');
   }
@@ -152,7 +174,10 @@ class YouTubeLooperApp {
     // Insert after player, before other content
     belowPlayer.parentNode?.insertBefore(container, belowPlayer);
     
-    console.log('Timeline injected');
+    // Store reference to container
+    this.timelineContainer = container;
+    
+    console.log('Timeline injected, container ID:', container.id);
   }
 
   private injectSidebar() {
@@ -365,6 +390,11 @@ class YouTubeLooperApp {
 
     if (this.sidebarElement) {
       (this.sidebarElement as any).loops = loops;
+      (this.sidebarElement as any).activeLoopId = activeLoopId;
+      (this.sidebarElement as any).pitchShift = this.loopManager.getPitchShift();
+    }
+  }
+
   private listenToChromeMessages() {
     chrome.runtime.onMessage.addListener((message: ChromeMessage) => {
       if (message.type === MessageType.LOOPS_SYNCED) {
@@ -479,11 +509,74 @@ class YouTubeLooperApp {
       this.syncComponentsWithLoops();
     }
   }
+
+  private async toggleUIVisibility() {
+    console.log('toggleUIVisibility called, current state:', this.isUIVisible);
+    this.isUIVisible = !this.isUIVisible;
+    console.log('New UI visibility state:', this.isUIVisible);
+    await this.storageService.setUIVisible(this.isUIVisible);
+    console.log('Saved to storage, calling updateUIVisibility');
+    this.updateUIVisibility();
+  }
+
+  private updateTimelineVisibility() {
+    console.log('Content script: Updating timeline visibility:', this.isUIVisible);
+    if (this.timelineContainer) {
+      const displayValue = this.isUIVisible ? 'block' : 'none';
+      this.timelineContainer.style.setProperty('display', displayValue, 'important');
+      console.log('Timeline container display set to:', displayValue);
+    }
+  }
+
+  private startVisibilityPolling() {
+    console.log('Content script: Starting visibility polling...');
+    // Poll localStorage every 500ms to detect changes from Angular component
+    setInterval(() => {
+      try {
+        const saved = localStorage.getItem('yt-looper-ui-visible');
+        const newValue = saved !== 'false';
+        
+        // Log every poll for debugging
+        if (Math.random() < 0.02) { // Log ~2% of polls to avoid spam
+          console.log('Content script: Polling... current:', this.isUIVisible, 'localStorage:', saved, 'newValue:', newValue);
+        }
+        
+        if (newValue !== this.isUIVisible) {
+          console.log('Content script: Detected visibility change! Old:', this.isUIVisible, 'New:', newValue);
+          this.isUIVisible = newValue;
+          this.updateTimelineVisibility();
+          // Also sync to sidebar
+          if (this.sidebarElement) {
+            const setUIVisible = (this.sidebarElement as any).setUIVisible;
+            if (setUIVisible && typeof setUIVisible === 'function') {
+              setUIVisible(this.isUIVisible);
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Content script: Error in polling:', e);
+      }
+    }, 500);
+  }
+
+  private updateUIVisibility() {
+    console.log('=== updateUIVisibility called, isUIVisible:', this.isUIVisible, '===');
+    this.updateTimelineVisibility();
+
+    // Update sidebar visibility state
+    if (this.sidebarElement) {
+      const setUIVisible = (this.sidebarElement as any).setUIVisible;
+      if (setUIVisible && typeof setUIVisible === 'function') {
+        setUIVisible(this.isUIVisible);
+        console.log('Sidebar visibility state updated via method');
+      } else {
+        console.warn('setUIVisible method not found on sidebar element');
+      }
+    } else {
+      console.warn('Sidebar element not found');
+    }
+  }
 }
 
 // Initialize the app
-const app = new YouTubeLooperApp();
-}
-
-// Initialize the app
-const app = new YouTubeLooperApp();
+new YouTubeLooperApp();

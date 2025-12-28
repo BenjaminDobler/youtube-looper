@@ -1,13 +1,12 @@
-import { Component, Input } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-icon',
-  standalone: true,
   template: `<svg 
-    [attr.width]="size" 
-    [attr.height]="size" 
-    [attr.viewBox]="viewBox"
+    [attr.width]="size()" 
+    [attr.height]="size()" 
+    [attr.viewBox]="viewBox()"
     fill="none" 
     stroke="currentColor" 
     stroke-width="2" 
@@ -27,9 +26,9 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
   `]
 })
 export class IconComponent {
-  @Input() name: string = '';
-  @Input() size: number = 16;
-  @Input() viewBox: string = '0 0 24 24';
+  name = input<string>('');
+  size = input<number>(16);
+  viewBox = input<string>('0 0 24 24');
 
   constructor(private sanitizer: DomSanitizer) {}
 
@@ -47,9 +46,11 @@ export class IconComponent {
       'repeat': '<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
       'share': '<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/>',
       'library': '<path d="M16 6v4m0 4v8m-8-4h8"/><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6Z"/>',
-      'refresh-cw': '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/>'
+      'refresh-cw': '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/>',
+      'chevron-left': '<path d="m15 18-6-6 6-6"/>',
+      'chevron-right': '<path d="m9 18 6-6-6-6"/>'
     };
     
-    return icons[this.name] || '';
+    return icons[this.name()] || '';
   }
 }

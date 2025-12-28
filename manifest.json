@@ -38,7 +38,8 @@
       "resources": [
         "angular-manifest.json",
         "angular-app/dist/browser/*.js",
-        "angular-app/dist/browser/*.css"
+        "angular-app/dist/browser/*.css",
+        "icons/*.png"
       ],
       "matches": ["https://www.youtube.com/*"]
     }

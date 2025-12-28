@@ -9,6 +9,63 @@
   padding: 16px;
   color: #fff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: padding 0.3s ease;
+
+  &.minimized {
+    padding: 8px;
+  }
+}
+
+// Toggle Header
+.toggle-header {
+  margin-bottom: 12px;
+
+  .toggle-button {
+    width: 100%;
+    background: #1a1a1a;
+    border: 1px solid #272727;
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+
+    .toggle-icon {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      color: #3ea6ff;
+    }
+
+    &:hover {
+      background: #272727;
+      border-color: #3ea6ff;
+      transform: scale(1.02);
+      
+      .toggle-icon {
+        color: #6fc5ff;
+      }
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+
+    .toggle-text {
+      font-weight: 500;
+      flex: 1;
+    }
+  }
+
+  .sidebar-container.minimized & {
+    margin-bottom: 0;
+  }
 }
 
 // Tab Navigation
